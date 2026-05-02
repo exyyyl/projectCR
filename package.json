@@ -1,6 +1,6 @@
 {
     "name": "projectcr",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "description": "ProjectCR",
     "main": "out/main/index.js",
     "author": "",
@@ -16,7 +16,8 @@
             {
                 "provider": "github",
                 "owner": "exyyyl",
-                "repo": "projectCR"
+                "repo": "projectCR",
+                "releaseType": "release"
             }
         ],
         "win": {
@@ -46,6 +47,7 @@
         "dotenv": "^17.4.2",
         "electron-log": "^5.4.3",
         "electron-updater": "^6.8.3",
+        "lucide-react": "^1.14.0",
         "react": "^18.2.0",
         "react-dom": "^18.2.0"
     },
