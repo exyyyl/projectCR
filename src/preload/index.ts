@@ -1,0 +1,23 @@
+import { contextBridge, ipcRenderer } from 'electron'
+
+contextBridge.exposeInMainWorld('api', {
+  crosshairs: {
+    getAll: () => ipcRenderer.invoke('crosshairs:getAll'),
+    add: (c: unknown) => ipcRenderer.invoke('crosshairs:add', c),
+    update: (c: unknown) => ipcRenderer.invoke('crosshairs:update', c),
+    delete: (id: string) => ipcRenderer.invoke('crosshairs:delete', id)
+  },
+  valorant: {
+    getStatus: () => ipcRenderer.invoke('valorant:getStatus'),
+    applyCrosshair: (code: string) => ipcRenderer.invoke('valorant:applyCrosshair', code)
+  },
+  cs2: {
+    applyCrosshair: (code: string) => ipcRenderer.invoke('cs2:applyCrosshair', code),
+    readCurrentCrosshair: () => ipcRenderer.invoke('cs2:readCurrentCrosshair')
+  },
+  window: {
+    minimize: () => ipcRenderer.send('window:minimize'),
+    maximize: () => ipcRenderer.send('window:maximize'),
+    close: () => ipcRenderer.send('window:close')
+  }
+})
