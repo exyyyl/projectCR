@@ -18,6 +18,17 @@ contextBridge.exposeInMainWorld('api', {
   window: {
     minimize: () => ipcRenderer.send('window:minimize'),
     maximize: () => ipcRenderer.send('window:maximize'),
-    close: () => ipcRenderer.send('window:close')
+    close: () => ipcRenderer.send('window:close'),
+    onUpdateAvailable: (callback: (info: any) => void) => {
+      const listener = (_event: any, info: any) => callback(info)
+      ipcRenderer.on('update-available', listener)
+      return () => ipcRenderer.removeListener('update-available', listener)
+    },
+    onUpdateDownloaded: (callback: (info: any) => void) => {
+      const listener = (_event: any, info: any) => callback(info)
+      ipcRenderer.on('update-downloaded', listener)
+      return () => ipcRenderer.removeListener('update-downloaded', listener)
+    },
+    installUpdate: () => ipcRenderer.send('update:install')
   }
 })

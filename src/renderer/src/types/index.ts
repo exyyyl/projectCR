@@ -56,6 +56,9 @@ declare global {
         minimize: () => void
         maximize: () => void
         close: () => void
+        onUpdateAvailable: (callback: (info: any) => void) => () => void
+        onUpdateDownloaded: (callback: (info: any) => void) => () => void
+        installUpdate: () => void
       }
     }
   }

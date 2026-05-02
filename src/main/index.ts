@@ -1,5 +1,10 @@
 import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { autoUpdater } from 'electron-updater'
+import log from 'electron-log'
+import * as dotenv from 'dotenv'
 import { join } from 'path'
+
+dotenv.config()
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { initDatabase, db } from './database'
 import { ValorantAPI } from './valorant-api'
@@ -58,6 +63,46 @@ app.whenReady().then(() => {
   app.on('activate', function () {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
+
+  // Configure logging
+  autoUpdater.logger = log
+  log.info('App starting...')
+
+  // For private GitHub repos, we need to provide the token
+  if (process.env.GH_TOKEN) {
+    autoUpdater.addAuthHeader(`token ${process.env.GH_TOKEN}`)
+  }
+
+  // Check for updates
+  if (!is.dev) {
+    autoUpdater.checkForUpdatesAndNotify()
+  }
+
+  autoUpdater.on('checking-for-update', () => {
+    log.info('Checking for update...')
+  })
+
+  autoUpdater.on('update-available', (info) => {
+    log.info('Update available:', info.version)
+    BrowserWindow.getAllWindows()[0]?.webContents.send('update-available', info)
+  })
+
+  autoUpdater.on('update-not-available', (info) => {
+    log.info('Update not available:', info?.version)
+  })
+
+  autoUpdater.on('error', (err) => {
+    log.error('Update error:', err)
+  })
+
+  autoUpdater.on('download-progress', (progressObj) => {
+    log.info(`Download speed: ${progressObj.bytesPerSecond} - Downloaded ${progressObj.percent}%`)
+  })
+
+  autoUpdater.on('update-downloaded', (info) => {
+    log.info('Update downloaded:', info.version)
+    BrowserWindow.getAllWindows()[0]?.webContents.send('update-downloaded', info)
+  })
 })
 
 app.on('window-all-closed', () => {
@@ -74,6 +119,7 @@ ipcMain.on('window:maximize', () => {
   else win?.maximize()
 })
 ipcMain.on('window:close', () => BrowserWindow.getFocusedWindow()?.close())
+ipcMain.on('update:install', () => autoUpdater.quitAndInstall())
 
 function registerIpcHandlers(): void {
   ipcMain.handle('crosshairs:getAll', () => {

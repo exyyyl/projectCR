@@ -4,6 +4,7 @@ import { Titlebar } from './components/Titlebar'
 import { CrosshairCard } from './components/CrosshairCard'
 import { AddPanel } from './components/AddPanel'
 import { ToastContainer, toast } from './components/Toast'
+import { UpdateNotification } from './components/UpdateNotification'
 import { useCrosshairs } from './store/useCrosshairs'
 import { Crosshair, Game } from './types'
 
@@ -162,6 +163,7 @@ export default function App() {
 
       <AddPanel open={modalOpen} onClose={() => setModalOpen(false)} onAdd={add} />
       <ToastContainer />
+      <UpdateNotification />
     </div>
   )
 }
