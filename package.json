@@ -23,7 +23,8 @@
         ],
         "win": {
             "target": ["nsis"],
-            "icon": "resources/icon.png"
+            "icon": "resources/icon.png",
+            "executableName": "projectCR"
         },
         "nsis": {
             "oneClick": false,
@@ -37,6 +38,7 @@
         }
     },
     "scripts": {
+        "postinstall": "electron-builder install-app-deps",
         "dev": "electron-vite dev",
         "build": "electron-vite build",
         "preview": "electron-vite preview",
@@ -58,7 +60,6 @@
     },
     "devDependencies": {
         "@electron-toolkit/tsconfig": "^1.0.1",
-        "@electron/rebuild": "^3.7.2",
         "@types/better-sqlite3": "^7.6.8",
         "@types/node": "^20.11.5",
         "@types/react": "^18.2.48",
