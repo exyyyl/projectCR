@@ -1,10 +1,7 @@
 import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { autoUpdater } from 'electron-updater'
 import log from 'electron-log'
-import * as dotenv from 'dotenv'
 import { join } from 'path'
-
-dotenv.config()
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { initDatabase, db } from './database'
 import { ValorantAPI } from './valorant-api'
@@ -71,41 +68,37 @@ app.whenReady().then(() => {
 
   // Configure logging
   autoUpdater.logger = log
-  log.info('App starting...')
-
-  // For private GitHub repos, we need to provide the token
-  if (process.env.GH_TOKEN) {
-    autoUpdater.addAuthHeader(`token ${process.env.GH_TOKEN}`)
-  }
-
   // Check for updates
   if (!is.dev) {
-    autoUpdater.checkForUpdatesAndNotify()
+    log.info('Проверка обновлений...')
+    autoUpdater.checkForUpdates().catch(err => {
+      log.error('Ошибка при проверке обновлений:', err)
+    })
   }
 
   autoUpdater.on('checking-for-update', () => {
-    log.info('Checking for update...')
+    log.info('Checking for update event...')
   })
 
   autoUpdater.on('update-available', (info) => {
-    log.info('Update available:', info.version)
+    log.info('Update available event! New version:', info.version)
     BrowserWindow.getAllWindows()[0]?.webContents.send('update-available', info)
   })
 
   autoUpdater.on('update-not-available', (info) => {
-    log.info('Update not available:', info?.version)
+    log.info('Update not available event. Current version matches latest or latest is older:', info?.version)
   })
 
   autoUpdater.on('error', (err) => {
-    log.error('Update error:', err)
+    log.error('Update error event:', err)
   })
 
   autoUpdater.on('download-progress', (progressObj) => {
-    log.info(`Download speed: ${progressObj.bytesPerSecond} - Downloaded ${progressObj.percent}%`)
+    log.info(`Download progress: ${Math.round(progressObj.percent)}%`)
   })
 
   autoUpdater.on('update-downloaded', (info) => {
-    log.info('Update downloaded:', info.version)
+    log.info('Update downloaded event! Ready to install version:', info.version)
     BrowserWindow.getAllWindows()[0]?.webContents.send('update-downloaded', info)
   })
 })

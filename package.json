@@ -1,6 +1,6 @@
 {
     "name": "projectcr",
-    "version": "0.1.1",
+    "version": "0.1.2",
     "description": "ProjectCR",
     "main": "out/main/index.js",
     "author": "",
@@ -12,6 +12,7 @@
     "build": {
         "appId": "com.projectcr",
         "productName": "projectCR",
+        "icon": "resources/icon.png",
         "publish": [
             {
                 "provider": "github",
@@ -21,13 +22,18 @@
             }
         ],
         "win": {
-            "target": ["nsis"]
+            "target": ["nsis"],
+            "icon": "resources/icon.png"
         },
         "nsis": {
             "oneClick": false,
             "allowToChangeInstallationDirectory": true,
             "createDesktopShortcut": true,
-            "shortcutName": "projectCR"
+            "createStartMenuShortcut": true,
+            "shortcutName": "projectCR",
+            "installerIcon": "resources/icon.png",
+            "uninstallerIcon": "resources/icon.png",
+            "installerHeaderIcon": "resources/icon.png"
         }
     },
     "scripts": {
@@ -44,7 +50,6 @@
         "@electron-toolkit/utils": "^3.0.0",
         "axios": "^1.6.7",
         "better-sqlite3": "^9.4.3",
-        "dotenv": "^17.4.2",
         "electron-log": "^5.4.3",
         "electron-updater": "^6.8.3",
         "lucide-react": "^1.14.0",
