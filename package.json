@@ -12,7 +12,10 @@
     "build": {
         "appId": "com.projectcr",
         "productName": "projectCR",
-        "icon": "resources/icon.png",
+        "directories": {
+            "output": "dist",
+            "buildResources": "build"
+        },
         "publish": [
             {
                 "provider": "github",
@@ -23,7 +26,6 @@
         ],
         "win": {
             "target": ["nsis"],
-            "icon": "resources/icon.png",
             "executableName": "projectCR"
         },
         "nsis": {
@@ -31,10 +33,7 @@
             "allowToChangeInstallationDirectory": true,
             "createDesktopShortcut": true,
             "createStartMenuShortcut": true,
-            "shortcutName": "projectCR",
-            "installerIcon": "resources/icon.png",
-            "uninstallerIcon": "resources/icon.png",
-            "installerHeaderIcon": "resources/icon.png"
+            "shortcutName": "projectCR"
         }
     },
     "scripts": {
