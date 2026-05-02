@@ -12,6 +12,8 @@ import { CS2Config } from './cs2-config'
 
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
+    title: 'projectCR',
+    icon: join(__dirname, '../../resources/icon.png'),
     width: 1200,
     height: 780,
     minWidth: 900,
