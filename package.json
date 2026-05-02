@@ -38,12 +38,11 @@
         }
     },
     "scripts": {
-        "postinstall": "electron-builder install-app-deps && electron-rebuild -f -w better-sqlite3",
+        "postinstall": "electron-builder install-app-deps",
         "dev": "electron-vite dev",
         "build": "electron-vite build",
         "preview": "electron-vite preview",
-        "publish": "electron-vite build && electron-builder --publish always",
-        "rebuild": "electron-rebuild -f -w better-sqlite3"
+        "publish": "electron-vite build && electron-builder --publish always"
     },
     "dependencies": {
         "@base-ui-components/react": "^1.0.0-alpha.4",
