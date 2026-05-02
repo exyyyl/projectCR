@@ -1,13 +1,14 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { Tabs } from '@base-ui/react'
 import { Titlebar } from './components/Titlebar'
 import { CrosshairCard } from './components/CrosshairCard'
 import { AddPanel } from './components/AddPanel'
 import { ToastContainer, toast } from './components/Toast'
 import { UpdateNotification } from './components/UpdateNotification'
+import { CHANGELOG } from './config/changelog'
 import { useCrosshairs } from './store/useCrosshairs'
 import { Crosshair, Game } from './types'
-import { Search, Plus, Crosshair as CrosshairIcon, Info } from 'lucide-react'
+import { Search, Plus, Crosshair as CrosshairIcon } from 'lucide-react'
 
 type TabValue = 'all' | Game
 
@@ -25,9 +26,10 @@ export default function App() {
 
   const filtered = useMemo(() => {
     return crosshairs.filter(c => {
-      const matchGame = tab === 'all' || c.game === tab
+      const matchTab = tab === 'all' || c.game === tab
       const q = search.toLowerCase()
-      return !q || c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q)
+      const matchSearch = !q || c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q)
+      return matchTab && matchSearch
     })
   }, [crosshairs, tab, search])
 
@@ -114,6 +116,18 @@ export default function App() {
             >
               <Plus size={20} strokeWidth={3} />
             </button>
+
+            {/* Info Button */}
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('open-changelog'))}
+              className="w-10 h-10 flex items-center justify-center bg-white/[0.03] border border-white/5 text-white/40 rounded-2xl hover:bg-white/[0.05] hover:text-white/60 active:scale-95 transition-all"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 16v-4" />
+                <path d="M12 8h.01" />
+              </svg>
+            </button>
           </div>
         </div>
 
@@ -147,9 +161,87 @@ export default function App() {
         ))}
       </Tabs.Root>
 
-      <AddPanel open={modalOpen} onClose={() => setModalOpen(false)} onAdd={add} />
+      <AddPanel 
+        open={modalOpen} 
+        onClose={() => setModalOpen(false)} 
+        onAdd={async (name, code, game, note, tags) => { await add(name, code, game, note, tags) }} 
+      />
+      <ReleaseNotesModal />
       <ToastContainer />
       <UpdateNotification />
+    </div>
+  )
+}
+
+function ReleaseNotesModal() {
+  const [open, setOpen] = useState(false)
+  const [version, setVersion] = useState('')
+
+
+  useEffect(() => {
+    const checkVersion = async () => {
+      const currentVersion = await window.api.window.getVersion()
+      const lastVersion = localStorage.getItem('last_version')
+      
+      if (lastVersion && lastVersion !== currentVersion) {
+        setVersion(currentVersion)
+        setOpen(true)
+      }
+      
+      localStorage.setItem('last_version', currentVersion)
+    }
+    
+    checkVersion()
+
+    const handleOpen = () => {
+      window.api.window.getVersion().then(v => {
+        setVersion(v)
+        setOpen(true)
+      })
+    }
+
+    window.addEventListener('open-changelog', handleOpen)
+    return () => window.removeEventListener('open-changelog', handleOpen)
+  }, [])
+
+  if (!open) return null
+
+  const notes = CHANGELOG[version] || CHANGELOG['0.1.2']
+
+  return (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-fade-in">
+      <div className="bg-[#0A0A0A] border border-white/10 w-full max-w-md rounded-[2.5rem] shadow-[0_50px_100px_rgba(0,0,0,0.8)] overflow-hidden animate-scale-in">
+        <div className="p-8">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h2 className="text-2xl font-black text-white tracking-tight">Что нового?</h2>
+              <p className="text-[11px] text-white/30 font-bold uppercase tracking-[0.2em] mt-1">Версия {version}</p>
+            </div>
+            <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-white/20">
+              <Plus size={24} className="rotate-45" onClick={() => setOpen(false)} />
+            </div>
+          </div>
+
+          <div className="space-y-6 mb-10">
+            {notes.map((item, i) => (
+              <div key={i} className="flex gap-4 group">
+                <div className="w-1.5 h-1.5 rounded-full bg-white/20 mt-2 group-hover:bg-white transition-colors shrink-0" />
+                <div>
+                  <h4 className="text-[14px] font-black text-white/90 mb-1">{item.title}</h4>
+                  <p className="text-[12px] text-white/40 leading-relaxed font-medium">{item.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <button
+            onClick={() => setOpen(false)}
+            className="w-full py-4 bg-white text-black text-[11px] font-black uppercase tracking-[0.2em] rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all shadow-[0_20px_40px_rgba(255,255,255,0.1)]"
+          >
+            ПОНЯТНО
+          </button>
+        </div>
+      </div>
     </div>
   )
 }

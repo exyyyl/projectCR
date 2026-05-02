@@ -29,6 +29,7 @@ contextBridge.exposeInMainWorld('api', {
       ipcRenderer.on('update-downloaded', listener)
       return () => ipcRenderer.removeListener('update-downloaded', listener)
     },
-    installUpdate: () => ipcRenderer.send('update:install')
+    installUpdate: () => ipcRenderer.send('update:install'),
+    getVersion: () => ipcRenderer.invoke('app:getVersion')
   }
 })

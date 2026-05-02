@@ -120,6 +120,8 @@ ipcMain.on('window:close', () => BrowserWindow.getFocusedWindow()?.close())
 ipcMain.on('update:install', () => autoUpdater.quitAndInstall())
 
 function registerIpcHandlers(): void {
+  ipcMain.handle('app:getVersion', () => app.getVersion())
+
   ipcMain.handle('crosshairs:getAll', () => {
     try {
       return db.prepare('SELECT * FROM crosshairs ORDER BY created_at DESC').all()

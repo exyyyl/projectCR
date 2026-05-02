@@ -59,6 +59,7 @@ declare global {
         onUpdateAvailable: (callback: (info: any) => void) => () => void
         onUpdateDownloaded: (callback: (info: any) => void) => () => void
         installUpdate: () => void
+        getVersion: () => Promise<string>
       }
     }
   }
