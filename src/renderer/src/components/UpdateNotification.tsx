@@ -5,6 +5,8 @@ export function UpdateNotification() {
   const [downloaded, setDownloaded] = useState(false)
 
   useEffect(() => {
+    if (!window.api?.window) return
+
     // Listen for update available
     const unbindAvailable = window.api.window.onUpdateAvailable((info: any) => {
       setUpdateInfo(info)
@@ -16,8 +18,8 @@ export function UpdateNotification() {
     })
 
     return () => {
-      unbindAvailable()
-      unbindDownloaded()
+      unbindAvailable?.()
+      unbindDownloaded?.()
     }
   }, [])
 
