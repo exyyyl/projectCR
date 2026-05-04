@@ -164,7 +164,7 @@ export function AddPanel({ open, onClose, onAdd }: Props) {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-4">
+        <form id="add-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-4">
           {/* Code */}
           <div>
             <label className="block text-xs font-medium text-amoled-text-secondary mb-1.5">
