@@ -7,14 +7,17 @@ import { UpdateNotification } from './components/UpdateNotification'
 import { CHANGELOG } from './config/changelog'
 import { useCrosshairs } from './store/useCrosshairs'
 import { Game } from './types'
-import { Search, Plus, Crosshair as CrosshairIcon, Settings, ChevronDown } from 'lucide-react'
+import { Search, Plus, Crosshair as CrosshairIcon, Settings, ChevronDown, Sliders, Sparkles } from 'lucide-react'
 import { SettingsPanel } from './components/SettingsPanel'
+import { SensPanel } from './components/SensPanel'
+import { PresetsPanel } from './components/PresetsPanel'
 
-type TabValue = 'all' | Game | 'settings'
+type TabValue = 'crosshairs' | 'sens' | 'presets' | 'settings'
 
 export default function App() {
   const { crosshairs, loading, add, remove } = useCrosshairs()
-  const [tab, setTab] = useState<TabValue>('all')
+  const [tab, setTab] = useState<TabValue>('crosshairs')
+  const [gameFilter, setGameFilter] = useState<'all' | Game>('all')
   const [search, setSearch] = useState('')
   const [sortBy, setBy] = useState<'newest' | 'name' | 'game'>('newest')
   const [sortOrder, setOrder] = useState<'asc' | 'desc'>('desc')
@@ -29,7 +32,7 @@ export default function App() {
 
   const filtered = useMemo(() => {
     let result = crosshairs.filter(c => {
-      const matchTab = tab === 'all' || c.game === tab
+      const matchTab = gameFilter === 'all' || c.game === gameFilter
       const q = search.toLowerCase()
       const matchSearch = !q || c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q)
       return matchTab && matchSearch
@@ -43,7 +46,7 @@ export default function App() {
       
       return sortOrder === 'desc' ? -comparison : comparison
     })
-  }, [crosshairs, tab, search, sortBy, sortOrder])
+  }, [crosshairs, gameFilter, search, sortBy, sortOrder])
 
   return (
     <div className="flex flex-col h-screen bg-amoled-bg text-amoled-text overflow-hidden font-sans">
@@ -53,18 +56,18 @@ export default function App() {
         onValueChange={(v) => setTab(v as TabValue)}
         className="flex flex-col flex-1 overflow-hidden"
       >
-        <div className="flex items-center h-14 px-2 pt-2 shrink-0 drag-region bg-amoled-bg">
+        <div className="flex items-center h-16 shrink-0 drag-region bg-amoled-bg border-b border-white/[0.03]">
           {/* Left spacer (balances window controls width) */}
-          <div className="w-28 shrink-0" />
+          <div className="w-36 shrink-0" />
 
           {/* Center: pill navigation */}
           <div className="flex-1 flex items-center justify-center">
             <div className="flex items-center p-1 bg-white/[0.03] border border-white/[0.05] rounded-[20px] no-drag">
               <Tabs.List className="flex items-center gap-0.5">
                 {([
-                  { value: 'all', label: 'ВСЕ', count: counts.all, color: '#38BDF8' },
-                  { value: 'valorant', label: 'VALORANT', count: counts.valorant, color: '#FF4655' },
-                  { value: 'cs2', label: 'CS2', count: counts.cs2, color: '#E8A530' },
+                  { value: 'crosshairs', label: 'ПРИЦЕЛЫ', icon: <CrosshairIcon size={12} strokeWidth={2.5} /> },
+                  { value: 'sens', label: 'SENS', icon: <Sliders size={12} strokeWidth={2.5} /> },
+                  { value: 'presets', label: 'ПРЕСЕТЫ', icon: <Sparkles size={12} strokeWidth={2.5} /> },
                 ] as const).map(item => {
                   const isActive = tab === item.value
                   return (
@@ -73,17 +76,12 @@ export default function App() {
                       value={item.value}
                       className={`no-drag relative flex items-center h-8 px-5 rounded-[16px] text-[10px] font-black tracking-widest transition-all duration-150 outline-none gap-2
                         ${isActive
-                          ? 'text-black'
+                          ? 'bg-white text-black shadow-lg shadow-white/[0.02]'
                           : 'text-white/25 hover:text-white/70 hover:bg-white/[0.06]'
                         }`}
-                      style={isActive ? { backgroundColor: item.color } : {}}
                     >
+                      {item.icon}
                       {item.label}
-                      {item.count > 0 && (
-                        <span className={`text-[9px] font-mono tabular-nums ${isActive ? 'opacity-40' : 'opacity-50'}`}>
-                          {item.count}
-                        </span>
-                      )}
                     </Tabs.Tab>
                   )
                 })}
@@ -106,22 +104,22 @@ export default function App() {
           </div>
 
           {/* Right: window controls */}
-          <div className="w-28 shrink-0 flex items-center justify-end gap-0.5 no-drag">
+          <div className="w-36 h-full shrink-0 flex items-center justify-end no-drag">
             <button
               onClick={() => window.api.window.minimize()}
-              className="w-8 h-8 flex items-center justify-center text-white/20 hover:text-white hover:bg-white/[0.06] rounded-lg transition-colors"
+              className="w-12 h-full flex items-center justify-center text-white/40 hover:text-white hover:bg-white/[0.08] transition-colors"
             >
               <svg width="10" height="1" viewBox="0 0 10 1" fill="currentColor"><rect width="10" height="1" rx="0.5" /></svg>
             </button>
             <button
               onClick={() => window.api.window.maximize()}
-              className="w-8 h-8 flex items-center justify-center text-white/20 hover:text-white hover:bg-white/[0.06] rounded-lg transition-colors"
+              className="w-12 h-full flex items-center justify-center text-white/40 hover:text-white hover:bg-white/[0.08] transition-colors"
             >
               <svg width="9" height="9" viewBox="0 0 9 9" fill="none" stroke="currentColor" strokeWidth="1"><rect x="0.5" y="0.5" width="8" height="8" rx="1" /></svg>
             </button>
             <button
               onClick={() => window.api.window.close()}
-              className="w-8 h-8 flex items-center justify-center text-white/20 hover:text-white hover:bg-red-600 rounded-lg transition-colors"
+              className="w-12 h-full flex items-center justify-center text-white/40 hover:text-white hover:bg-[#E81123] transition-colors"
             >
               <svg width="9" height="9" viewBox="0 0 9 9" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"><line x1="1" y1="1" x2="8" y2="8" /><line x1="8" y1="1" x2="1" y2="8" /></svg>
             </button>
@@ -129,132 +127,192 @@ export default function App() {
         </div>
 
         {/* Content Area */}
-        {(['all', 'valorant', 'cs2', 'settings'] as TabValue[]).map(tabVal => (
-          <Tabs.Panel
-            key={tabVal}
-            value={tabVal}
-            className={`flex-1 focus:outline-none relative ${tabVal === 'settings' ? 'overflow-hidden' : 'overflow-y-auto custom-scrollbar'}`}
-          >
-            {tabVal === 'settings' ? (
-              <SettingsPanel />
-            ) : (
-              <div className="flex flex-col h-full">
-                {/* Internal Toolbar */}
-                <div className="px-6 pt-5 pb-0 flex items-center gap-3 shrink-0">
-                  {/* Search - Left Aligned */}
-                  <div className="relative w-64 flex items-center h-10 group bg-white/[0.02] border border-white/[0.05] rounded-xl px-4 focus-within:bg-white/[0.04] focus-within:border-white/10 transition-all duration-200">
-                    <Search 
-                      size={16} 
-                      className={`transition-colors duration-300 ${
-                        search ? 'text-white' : 'text-white/20'
-                      } group-focus-within:text-white`} 
-                    />
-                    <input
-                      type="text"
-                      value={search}
-                      onChange={e => setSearch(e.target.value)}
-                      placeholder="ПОИСК..."
-                      className="bg-transparent flex-1 ml-4 text-[11px] font-black tracking-[0.1em] text-white placeholder-white/10 outline-none border-none focus:ring-0"
-                    />
-                  </div>
+        <Tabs.Panel
+          value="crosshairs"
+          className="flex-1 focus:outline-none relative overflow-y-auto custom-scrollbar"
+        >
+          <div className="flex flex-col h-full">
+            {/* Internal Toolbar */}
+            <div className="px-6 pt-5 pb-0 flex flex-wrap items-center gap-3 shrink-0">
+              {/* Game Sub-filters inside the Crosshairs tab */}
+              <div className="relative flex items-center p-1 bg-[#0A0A0A] border border-white/[0.03] rounded-xl overflow-hidden">
+                {/* Sliding active background indicator */}
+                <div 
+                  className="absolute top-1 bottom-1 rounded-[10px] bg-white/[0.06] border border-white/10 shadow-lg shadow-white/[0.02] transition-all duration-300 ease-out pointer-events-none"
+                  style={{
+                    width: '112px',
+                    left: gameFilter === 'all' 
+                      ? '4px' 
+                      : gameFilter === 'valorant' 
+                      ? '116px' 
+                      : '228px'
+                  }}
+                />
 
-                  <div className="flex-1" />
-
-                  {/* Grouped Actions - Right Aligned */}
-                  <div className="flex items-center gap-2">
-                    {/* Integrated Sort Control */}
-                    <div className="flex items-center bg-white/[0.02] border border-white/[0.05] rounded-xl relative">
-                      <button
-                        onClick={() => setOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
-                        className="w-10 h-10 flex items-center justify-center border-r border-white/[0.05] text-white/40 hover:text-white hover:bg-white/5 transition-all rounded-l-xl"
-                        title={sortOrder === 'asc' ? 'По возрастанию' : 'По убыванию'}
-                      >
-                        {sortOrder === 'asc' ? (
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="m3 8 4-4 4 4"/><path d="M7 4v16"/><path d="M11 12h4"/><path d="M11 16h7"/><path d="M11 20h10"/>
-                          </svg>
-                        ) : (
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="m3 16 4 4 4-4"/><path d="M7 20V4"/><path d="M11 4h10"/><path d="M11 8h7"/><path d="M11 12h4"/>
-                          </svg>
-                        )}
-                      </button>
-                      
-                      {/* Custom Select Trigger */}
-                      <div className="relative">
-                        <button 
-                          onClick={() => setSortOpen(!sortOpen)}
-                          className="flex items-center h-10 pl-4 pr-3 text-[10px] font-black text-white/60 hover:text-white transition-colors uppercase tracking-widest gap-2"
-                        >
-                          {sortBy === 'newest' ? 'По дате' : sortBy === 'name' ? 'По названию' : 'По игре'}
-                          <ChevronDown size={14} className={`transition-transform duration-300 ${sortOpen ? 'rotate-180' : ''}`} />
-                        </button>
-
-                        {/* Custom Dropdown Menu */}
-                        {sortOpen && (
-                          <>
-                            <div 
-                              className="fixed inset-0 z-40" 
-                              onClick={() => setSortOpen(false)} 
-                            />
-                            <div className="absolute top-full right-0 mt-2 w-48 bg-[#0A0A0A] border border-white/[0.05] rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden z-50 animate-fade-in origin-top-right">
-                              {([
-                                { value: 'newest', label: 'По дате' },
-                                { value: 'name', label: 'По названию' },
-                                { value: 'game', label: 'По игре' }
-                              ] as const).map(opt => (
-                                <button
-                                  key={opt.value}
-                                  onClick={() => { setBy(opt.value); setSortOpen(false) }}
-                                  className={`w-full px-5 py-4 text-left text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-between
-                                    ${sortBy === opt.value 
-                                      ? 'bg-white/5 text-white' 
-                                      : 'text-white/30 hover:bg-white/[0.02] hover:text-white/60'
-                                    }`}
-                                >
-                                  {opt.label}
-                                  {sortBy === opt.value && <div className="w-1 h-1 rounded-full bg-white shadow-[0_0_8px_white]" />}
-                                </button>
-                              ))}
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Add Icon Button */}
+                {([
+                  { value: 'all', label: 'ВСЕ', count: counts.all, color: '#38BDF8' },
+                  { value: 'valorant', label: 'VALORANT', count: counts.valorant, color: '#FF4655' },
+                  { value: 'cs2', label: 'CS2', count: counts.cs2, color: '#E8A530' },
+                ] as const).map(item => {
+                  const isActive = gameFilter === item.value
+                  return (
                     <button
-                      onClick={() => setModalOpen(true)}
-                      className="w-10 h-10 flex items-center justify-center bg-white text-black rounded-xl hover:scale-[1.05] active:scale-[0.95] transition-all shadow-[0_8px_20px_rgba(255,255,255,0.05)]"
-                      title="Добавить прицел"
+                      key={item.value}
+                      onClick={() => setGameFilter(item.value)}
+                      className={`relative z-10 flex items-center justify-center h-8 w-28 rounded-[10px] text-[9px] font-black tracking-widest transition-all duration-300 outline-none gap-2
+                        ${isActive
+                          ? 'text-white'
+                          : 'text-white/20 hover:text-white/50'
+                        }`}
                     >
-                      <Plus size={20} strokeWidth={3} />
+                      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: item.color }} />
+                      {item.label}
+                      {item.count > 0 && (
+                        <span className="text-[8px] font-mono opacity-40">
+                          {item.count}
+                        </span>
+                      )}
                     </button>
+                  )
+                })}
+              </div>
+
+              <div className="flex-1" />
+
+              {/* Search - Right Aligned */}
+              <div className="relative w-60 flex items-center h-10 group bg-white/[0.02] border border-white/[0.05] rounded-xl px-4 focus-within:bg-white/[0.04] focus-within:border-white/10 transition-all duration-200">
+                <Search 
+                  size={16} 
+                  className={`transition-colors duration-300 ${
+                    search ? 'text-white' : 'text-white/20'
+                  } group-focus-within:text-white`} 
+                />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="ПОИСК..."
+                  className="bg-transparent flex-1 ml-3 text-[11px] font-black tracking-[0.1em] text-white placeholder-white/10 outline-none border-none focus:ring-0"
+                />
+              </div>
+
+              {/* Grouped Actions - Right Aligned */}
+              <div className="flex items-center gap-2">
+                {/* Integrated Sort Control */}
+                <div className="flex items-center bg-white/[0.02] border border-white/[0.05] rounded-xl relative">
+                  <button
+                    onClick={() => setOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
+                    className="w-10 h-10 flex items-center justify-center border-r border-white/[0.05] text-white/40 hover:text-white hover:bg-white/5 transition-all rounded-l-xl"
+                    title={sortOrder === 'asc' ? 'По возрастанию' : 'По убыванию'}
+                  >
+                    {sortOrder === 'asc' ? (
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="m3 8 4-4 4 4"/><path d="M7 4v16"/><path d="M11 12h4"/><path d="M11 16h7"/><path d="M11 20h10"/>
+                      </svg>
+                    ) : (
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="m3 16 4 4 4-4"/><path d="M7 20V4"/><path d="M11 4h10"/><path d="M11 8h7"/><path d="M11 12h4"/>
+                      </svg>
+                    )}
+                  </button>
+                  
+                  {/* Custom Select Trigger */}
+                  <div className="relative">
+                    <button 
+                      onClick={() => setSortOpen(!sortOpen)}
+                      className="flex items-center h-10 pl-4 pr-3 text-[10px] font-black text-white/60 hover:text-white transition-colors uppercase tracking-widest gap-2"
+                    >
+                      {sortBy === 'newest' ? 'По дате' : sortBy === 'name' ? 'По названию' : 'По игре'}
+                      <ChevronDown size={14} className={`transition-transform duration-300 ${sortOpen ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    {/* Custom Dropdown Menu */}
+                    {sortOpen && (
+                      <>
+                        <div 
+                          className="fixed inset-0 z-40" 
+                          onClick={() => setSortOpen(false)} 
+                        />
+                        <div className="absolute top-full right-0 mt-2 w-48 bg-[#0A0A0A] border border-white/[0.05] rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden z-50 animate-fade-in origin-top-right">
+                          {([
+                            { value: 'newest', label: 'По дате' },
+                            { value: 'name', label: 'По названию' },
+                            { value: 'game', label: 'По игре' }
+                          ] as const).map(opt => (
+                            <button
+                              key={opt.value}
+                              onClick={() => { setBy(opt.value); setSortOpen(false) }}
+                              className={`w-full px-5 py-4 text-left text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-between
+                                ${sortBy === opt.value 
+                                  ? 'bg-white/5 text-white' 
+                                  : 'text-white/30 hover:bg-white/[0.02] hover:text-white/60'
+                                }`}
+                            >
+                              {opt.label}
+                              {sortBy === opt.value && <div className="w-1 h-1 rounded-full bg-white shadow-[0_0_8px_white]" />}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
 
-                {loading ? (
-                  <div className="flex-1 flex items-center justify-center">
-                    <div className="w-6 h-6 border-2 border-white/10 border-t-white rounded-full animate-spin" />
-                  </div>
-                ) : filtered.length === 0 ? (
-                  <EmptyState search={search} onClearSearch={() => setSearch('')} onAdd={() => setModalOpen(true)} />
-                ) : (
-                  <div className="px-6 pt-4 pb-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                    {filtered.map(c => (
-                      <CrosshairCard
-                        key={c.id}
-                        crosshair={c}
-                        onDelete={async (id) => { await remove(id); toast('Удалено') }}
-                        onCopyCode={(code) => { navigator.clipboard.writeText(code); toast('Код скопирован') }}
-                      />
-                    ))}
-                  </div>
-                )}
+                {/* Add Icon Button */}
+                <button
+                  onClick={() => setModalOpen(true)}
+                  className="w-10 h-10 flex items-center justify-center bg-white text-black rounded-xl hover:scale-[1.05] active:scale-[0.95] transition-all shadow-[0_8px_20px_rgba(255,255,255,0.05)]"
+                  title="Добавить прицел"
+                >
+                  <Plus size={20} strokeWidth={3} />
+                </button>
+              </div>
+            </div>
+
+            {loading ? (
+              <div className="flex-1 flex items-center justify-center">
+                <div className="w-6 h-6 border-2 border-white/10 border-t-white rounded-full animate-spin" />
+              </div>
+            ) : filtered.length === 0 ? (
+              <EmptyState search={search} onClearSearch={() => setSearch('')} onAdd={() => setModalOpen(true)} />
+            ) : (
+              <div className="px-6 pt-4 pb-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                {filtered.map(c => (
+                  <CrosshairCard
+                    key={c.id}
+                    crosshair={c}
+                    onDelete={async (id) => { await remove(id); toast('Удалено') }}
+                    onCopyCode={(code) => { navigator.clipboard.writeText(code); toast('Код скопирован') }}
+                  />
+                ))}
               </div>
             )}
-          </Tabs.Panel>
-        ))}
+          </div>
+        </Tabs.Panel>
+
+        <Tabs.Panel
+          value="sens"
+          className="flex-1 focus:outline-none relative overflow-hidden"
+        >
+          <SensPanel />
+        </Tabs.Panel>
+
+        <Tabs.Panel
+          value="presets"
+          className="flex-1 focus:outline-none relative overflow-hidden"
+        >
+          <PresetsPanel 
+            onAddCrosshair={add} 
+            existingCodes={crosshairs.map(c => c.code.trim())} 
+          />
+        </Tabs.Panel>
+
+        <Tabs.Panel
+          value="settings"
+          className="flex-1 focus:outline-none relative overflow-hidden"
+        >
+          <SettingsPanel />
+        </Tabs.Panel>
       </Tabs.Root>
 
       <AddPanel 
@@ -304,7 +362,7 @@ function ReleaseNotesModal() {
 
   if (!open) return null
 
-  const notes = CHANGELOG[version] || CHANGELOG['0.1.2']
+  const notes = CHANGELOG[version] || CHANGELOG['0.1.2-beta']
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-fade-in">
