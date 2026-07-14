@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
-import { Tabs } from '@base-ui/react'
+import { Dialog, Tabs } from '@base-ui/react'
 import { CrosshairCard } from './components/CrosshairCard'
 import { AddPanel } from './components/AddPanel'
 import { ToastContainer, toast } from './components/Toast'
@@ -7,12 +7,13 @@ import { UpdateNotification } from './components/UpdateNotification'
 import { CHANGELOG } from './config/changelog'
 import { useCrosshairs } from './store/useCrosshairs'
 import { Game } from './types'
-import { Search, Plus, Crosshair as CrosshairIcon, Settings, ChevronDown, Sliders, Sparkles } from 'lucide-react'
+import { Search, Plus, Crosshair as CrosshairIcon, Settings, ChevronDown, Users, X } from 'lucide-react'
 import { SettingsPanel } from './components/SettingsPanel'
-import { SensPanel } from './components/SensPanel'
-import { PresetsPanel } from './components/PresetsPanel'
+import { LineupsPanel } from './components/LineupsPanel'
 
-type TabValue = 'crosshairs' | 'sens' | 'presets' | 'settings'
+type TabValue = 'crosshairs' | 'lineups' | 'settings'
+
+const CHANGELOG_RELEASES = Object.entries(CHANGELOG).map(([version, items]) => ({ version, items }))
 
 export default function App() {
   const { crosshairs, loading, add, remove } = useCrosshairs()
@@ -56,122 +57,47 @@ export default function App() {
         onValueChange={(v) => setTab(v as TabValue)}
         className="flex flex-col flex-1 overflow-hidden"
       >
-        <div className="flex items-center h-16 shrink-0 drag-region bg-amoled-bg border-b border-white/[0.03]">
-          {/* Left spacer (balances window controls width) */}
-          <div className="w-36 shrink-0" />
-
-          {/* Center: pill navigation */}
-          <div className="flex-1 flex items-center justify-center">
-            <div className="flex items-center p-1 bg-white/[0.03] border border-white/[0.05] rounded-[20px] no-drag">
-              <Tabs.List className="flex items-center gap-0.5">
-                {([
-                  { value: 'crosshairs', label: 'ПРИЦЕЛЫ', icon: <CrosshairIcon size={12} strokeWidth={2.5} /> },
-                  { value: 'sens', label: 'SENS', icon: <Sliders size={12} strokeWidth={2.5} /> },
-                  { value: 'presets', label: 'ПРЕСЕТЫ', icon: <Sparkles size={12} strokeWidth={2.5} /> },
-                ] as const).map(item => {
-                  const isActive = tab === item.value
-                  return (
-                    <Tabs.Tab
-                      key={item.value}
-                      value={item.value}
-                      className={`no-drag relative flex items-center h-8 px-5 rounded-[16px] text-[10px] font-black tracking-widest transition-all duration-150 outline-none gap-2
-                        ${isActive
-                          ? 'bg-white text-black shadow-lg shadow-white/[0.02]'
-                          : 'text-white/25 hover:text-white/70 hover:bg-white/[0.06]'
-                        }`}
-                    >
-                      {item.icon}
-                      {item.label}
-                    </Tabs.Tab>
-                  )
-                })}
-              </Tabs.List>
-
-              <div className="w-px h-5 bg-white/10 mx-1" />
-
-              <button
-                onClick={() => setTab('settings')}
-                className={`no-drag w-8 h-8 flex items-center justify-center rounded-[16px] transition-all duration-200
-                  ${tab === 'settings'
-                    ? 'bg-white text-black'
-                    : 'text-white/30 hover:text-white/60 hover:bg-white/[0.04]'
-                  }`}
-                title="Настройки"
-              >
-                <Settings size={15} strokeWidth={tab === 'settings' ? 3 : 2} />
-              </button>
-            </div>
-          </div>
-
-          {/* Right: window controls */}
-          <div className="w-36 h-full shrink-0 flex items-center justify-end no-drag">
-            <button
-              onClick={() => window.api.window.minimize()}
-              className="w-12 h-full flex items-center justify-center text-white/40 hover:text-white hover:bg-white/[0.08] transition-colors"
-            >
-              <svg width="10" height="1" viewBox="0 0 10 1" fill="currentColor"><rect width="10" height="1" rx="0.5" /></svg>
-            </button>
-            <button
-              onClick={() => window.api.window.maximize()}
-              className="w-12 h-full flex items-center justify-center text-white/40 hover:text-white hover:bg-white/[0.08] transition-colors"
-            >
-              <svg width="9" height="9" viewBox="0 0 9 9" fill="none" stroke="currentColor" strokeWidth="1"><rect x="0.5" y="0.5" width="8" height="8" rx="1" /></svg>
-            </button>
-            <button
-              onClick={() => window.api.window.close()}
-              className="w-12 h-full flex items-center justify-center text-white/40 hover:text-white hover:bg-[#E81123] transition-colors"
-            >
-              <svg width="9" height="9" viewBox="0 0 9 9" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"><line x1="1" y1="1" x2="8" y2="8" /><line x1="8" y1="1" x2="1" y2="8" /></svg>
-            </button>
-          </div>
-        </div>
-
         {/* Content Area */}
         <Tabs.Panel
           value="crosshairs"
-          className="flex-1 focus:outline-none relative overflow-y-auto custom-scrollbar"
+          className="relative min-h-0 flex-1 overflow-hidden focus:outline-none"
         >
-          <div className="flex flex-col h-full">
+          <div className="flex h-full min-h-0 flex-col">
             {/* Internal Toolbar */}
-            <div className="px-6 pt-5 pb-0 flex flex-wrap items-center gap-3 shrink-0">
+            <div className="relative z-30 flex shrink-0 flex-wrap items-center gap-3 border-b border-white/[0.045] bg-[#050505]/95 px-6 py-4 backdrop-blur-xl">
               {/* Game Sub-filters inside the Crosshairs tab */}
-              <div className="relative flex items-center p-1 bg-[#0A0A0A] border border-white/[0.03] rounded-xl overflow-hidden">
-                {/* Sliding active background indicator */}
-                <div 
-                  className="absolute top-1 bottom-1 rounded-[10px] bg-white/[0.06] border border-white/10 shadow-lg shadow-white/[0.02] transition-all duration-300 ease-out pointer-events-none"
-                  style={{
-                    width: '112px',
-                    left: gameFilter === 'all' 
-                      ? '4px' 
-                      : gameFilter === 'valorant' 
-                      ? '116px' 
-                      : '228px'
-                  }}
-                />
-
+              <div className="flex items-center gap-1 p-1 bg-[#0A0A0A] border border-white/[0.05] rounded-2xl overflow-hidden">
                 {([
-                  { value: 'all', label: 'ВСЕ', count: counts.all, color: '#38BDF8' },
-                  { value: 'valorant', label: 'VALORANT', count: counts.valorant, color: '#FF4655' },
-                  { value: 'cs2', label: 'CS2', count: counts.cs2, color: '#E8A530' },
+                  {
+                    value: 'all', label: 'ВСЕ', count: counts.all,
+                    active: 'bg-white text-black shadow-[0_8px_24px_rgba(255,255,255,0.08)]',
+                    inactive: 'text-white/40 hover:bg-white/[0.05] hover:text-white/80',
+                    badge: 'bg-black/10 text-black/55'
+                  },
+                  {
+                    value: 'valorant', label: 'VALORANT', count: counts.valorant,
+                    active: 'bg-[#FF4655] text-white shadow-[0_8px_24px_rgba(255,70,85,0.22)]',
+                    inactive: 'text-[#FF6571]/55 hover:bg-[#FF4655]/10 hover:text-[#FF6571]',
+                    badge: 'bg-black/15 text-white/75'
+                  },
+                  {
+                    value: 'cs2', label: 'CS2', count: counts.cs2,
+                    active: 'bg-[#E8A530] text-black shadow-[0_8px_24px_rgba(232,165,48,0.2)]',
+                    inactive: 'text-[#E8A530]/55 hover:bg-[#E8A530]/10 hover:text-[#F2B544]',
+                    badge: 'bg-black/10 text-black/60'
+                  },
                 ] as const).map(item => {
                   const isActive = gameFilter === item.value
                   return (
                     <button
                       key={item.value}
                       onClick={() => setGameFilter(item.value)}
-                      className={`relative z-10 flex items-center justify-center h-8 w-28 rounded-[10px] text-[9px] font-black tracking-widest transition-all duration-300 outline-none gap-2
-                        ${isActive
-                          ? 'text-white'
-                          : 'text-white/20 hover:text-white/50'
-                        }`}
+                      className={`flex h-9 min-w-28 items-center justify-center gap-2 rounded-xl px-4 text-[9px] font-black tracking-widest outline-none transition-all duration-200 ${isActive ? item.active : item.inactive}`}
                     >
-                      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: item.color }} />
                       {item.label}
-                      {item.count > 0 && (
-                        <span className="text-[8px] font-mono opacity-40">
-                          {item.count}
-                        </span>
-                      )}
+                      <span className={`min-w-5 rounded-md px-1.5 py-0.5 text-center font-mono text-[8px] ${isActive ? item.badge : 'bg-white/[0.04] text-current opacity-55'}`}>
+                        {item.count}
+                      </span>
                     </button>
                   )
                 })}
@@ -270,41 +196,35 @@ export default function App() {
             </div>
 
             {loading ? (
-              <div className="flex-1 flex items-center justify-center">
+              <div className="flex min-h-0 flex-1 items-center justify-center">
                 <div className="w-6 h-6 border-2 border-white/10 border-t-white rounded-full animate-spin" />
               </div>
             ) : filtered.length === 0 ? (
-              <EmptyState search={search} onClearSearch={() => setSearch('')} onAdd={() => setModalOpen(true)} />
+              <div className="min-h-0 flex-1">
+                <EmptyState search={search} onClearSearch={() => setSearch('')} onAdd={() => setModalOpen(true)} />
+              </div>
             ) : (
-              <div className="px-6 pt-4 pb-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                {filtered.map(c => (
-                  <CrosshairCard
-                    key={c.id}
-                    crosshair={c}
-                    onDelete={async (id) => { await remove(id); toast('Удалено') }}
-                    onCopyCode={(code) => { navigator.clipboard.writeText(code); toast('Код скопирован') }}
-                  />
-                ))}
+              <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain">
+                <div className="grid grid-cols-2 content-start gap-4 px-6 pb-6 pt-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+                  {filtered.map(c => (
+                    <CrosshairCard
+                      key={c.id}
+                      crosshair={c}
+                      onDelete={async (id) => { await remove(id); toast('Удалено') }}
+                      onCopyCode={(code) => { navigator.clipboard.writeText(code); toast('Код скопирован') }}
+                    />
+                  ))}
+                </div>
               </div>
             )}
           </div>
         </Tabs.Panel>
 
         <Tabs.Panel
-          value="sens"
+          value="lineups"
           className="flex-1 focus:outline-none relative overflow-hidden"
         >
-          <SensPanel />
-        </Tabs.Panel>
-
-        <Tabs.Panel
-          value="presets"
-          className="flex-1 focus:outline-none relative overflow-hidden"
-        >
-          <PresetsPanel 
-            onAddCrosshair={add} 
-            existingCodes={crosshairs.map(c => c.code.trim())} 
-          />
+          <LineupsPanel />
         </Tabs.Panel>
 
         <Tabs.Panel
@@ -313,6 +233,51 @@ export default function App() {
         >
           <SettingsPanel />
         </Tabs.Panel>
+
+        <nav className="h-[72px] shrink-0 border-t border-white/[0.06] bg-[#050505]/95 px-6 backdrop-blur-xl">
+          <Tabs.List
+            aria-label="Разделы приложения"
+            className="mx-auto flex h-full w-fit items-center gap-1"
+          >
+            {([
+              { value: 'crosshairs', label: 'ПРИЦЕЛЫ', icon: CrosshairIcon },
+              { value: 'lineups', label: 'ЛАЙНАПЫ', icon: Users }
+            ] as const).map(item => {
+              const isActive = tab === item.value
+              const Icon = item.icon
+
+              return (
+                <Tabs.Tab
+                  key={item.value}
+                  value={item.value}
+                  className={`flex h-11 min-w-36 items-center justify-center gap-2.5 rounded-2xl px-5 text-[10px] font-black tracking-[0.14em] outline-none transition-all duration-200 focus-visible:ring-2 focus-visible:ring-white/50
+                    ${isActive
+                      ? 'bg-white text-black shadow-[0_10px_30px_rgba(255,255,255,0.08)]'
+                      : 'text-white/30 hover:bg-white/[0.05] hover:text-white/75'
+                    }`}
+                >
+                  <Icon size={15} strokeWidth={isActive ? 2.6 : 2} />
+                  {item.label}
+                </Tabs.Tab>
+              )
+            })}
+
+            <div className="mx-2 h-5 w-px bg-white/[0.08]" aria-hidden="true" />
+
+            <Tabs.Tab
+              value="settings"
+              aria-label="Настройки"
+              title="Настройки"
+              className={`flex size-11 items-center justify-center rounded-2xl outline-none transition-all duration-200 focus-visible:ring-2 focus-visible:ring-white/50
+                ${tab === 'settings'
+                  ? 'bg-white text-black shadow-[0_10px_30px_rgba(255,255,255,0.08)]'
+                  : 'text-white/30 hover:bg-white/[0.05] hover:text-white/75'
+                }`}
+            >
+              <Settings size={16} strokeWidth={tab === 'settings' ? 2.6 : 2} />
+            </Tabs.Tab>
+          </Tabs.List>
+        </nav>
       </Tabs.Root>
 
       <AddPanel 
@@ -329,76 +294,66 @@ export default function App() {
 
 function ReleaseNotesModal() {
   const [open, setOpen] = useState(false)
-  const [version, setVersion] = useState('')
-
 
   useEffect(() => {
-    if (!window.api?.window) return
+    const handleOpen = () => setOpen(true)
 
-    const checkVersion = async () => {
-      const currentVersion = await window.api.window.getVersion()
-      const lastVersion = localStorage.getItem('last_version')
-      
-      if (lastVersion && lastVersion !== currentVersion) {
-        setVersion(currentVersion)
-        setOpen(true)
-      }
-      
-      localStorage.setItem('last_version', currentVersion)
-    }
-    
-    checkVersion()
+    window.addEventListener('open-changelog', handleOpen)
 
-    const handleOpen = () => {
-      window.api.window.getVersion().then(v => {
-        setVersion(v)
-        setOpen(true)
+    if (window.api?.window) {
+      void window.api.window.getVersion().then(currentVersion => {
+        const lastVersion = localStorage.getItem('last_version')
+
+        if (lastVersion && lastVersion !== currentVersion) {
+          setOpen(true)
+        }
+
+        localStorage.setItem('last_version', currentVersion)
       })
     }
 
-    window.addEventListener('open-changelog', handleOpen)
     return () => window.removeEventListener('open-changelog', handleOpen)
   }, [])
 
-  if (!open) return null
-
-  const notes = CHANGELOG[version] || CHANGELOG['0.1.2-beta']
-
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-fade-in">
-      <div className="bg-[#0A0A0A] border border-white/10 w-full max-w-md rounded-[2.5rem] shadow-[0_50px_100px_rgba(0,0,0,0.8)] overflow-hidden animate-scale-in">
-        <div className="p-8">
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h2 className="text-2xl font-black text-white tracking-tight">Что нового?</h2>
-              <p className="text-[11px] text-white/30 font-bold uppercase tracking-[0.2em] mt-1">Версия {version}</p>
-            </div>
-            <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-white/20">
-              <Plus size={24} className="rotate-45" onClick={() => setOpen(false)} />
-            </div>
-          </div>
+    <Dialog.Root open={open} onOpenChange={setOpen}>
+      <Dialog.Portal>
+        <Dialog.Backdrop className="fixed inset-0 z-[190] bg-black/85 backdrop-blur-md animate-fade-in" />
+        <Dialog.Popup className="fixed left-1/2 top-1/2 z-[200] flex max-h-[calc(100vh-32px)] w-[calc(100vw-32px)] max-w-xl -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-[24px] border border-white/[0.09] bg-[#090909] shadow-[0_40px_120px_rgba(0,0,0,0.85)] outline-none animate-fade-in">
+          <header className="flex shrink-0 items-center justify-between border-b border-white/[0.07] px-6 py-5">
+            <Dialog.Title className="text-xl font-black tracking-[-0.025em] text-white">
+              Обновления
+            </Dialog.Title>
+            <Dialog.Description className="sr-only">
+              Изменения в версиях ProjectCR
+            </Dialog.Description>
+            <Dialog.Close
+              className="flex h-9 w-9 items-center justify-center rounded-xl text-white/35 outline-none transition-colors hover:bg-white/[0.06] hover:text-white focus-visible:ring-2 focus-visible:ring-white/50"
+              aria-label="Закрыть обновления"
+            >
+              <X size={17} />
+            </Dialog.Close>
+          </header>
 
-          <div className="space-y-6 mb-10">
-            {notes.map((item, i) => (
-              <div key={i} className="flex gap-4 group">
-                <div className="w-1.5 h-1.5 rounded-full bg-white/20 mt-2 group-hover:bg-white transition-colors shrink-0" />
-                <div>
-                  <h4 className="text-[14px] font-black text-white/90 mb-1">{item.title}</h4>
-                  <p className="text-[12px] text-white/40 leading-relaxed font-medium">{item.desc}</p>
+          <div className="min-h-0 overflow-y-auto p-5 sm:p-6">
+            {CHANGELOG_RELEASES.map(release => (
+              <section key={release.version} className="overflow-hidden rounded-2xl border border-white/[0.07] bg-white/[0.018]">
+                <div className="border-b border-white/[0.06] px-5 py-4">
+                  <p className="font-mono text-[12px] font-black tracking-tight text-white/75">v{release.version}</p>
                 </div>
-              </div>
+
+                {release.items.map(item => (
+                  <article key={`${release.version}-${item.title}`} className="px-5 py-6">
+                    <h3 className="text-[14px] font-bold tracking-tight text-white/85">{item.title}</h3>
+                    <p className="mt-2 max-w-md text-[12px] font-medium leading-relaxed text-white/35">{item.desc}</p>
+                  </article>
+                ))}
+              </section>
             ))}
           </div>
-
-          <button
-            onClick={() => setOpen(false)}
-            className="w-full py-4 bg-white text-black text-[11px] font-black uppercase tracking-[0.2em] rounded-2xl hover:scale-[1.02] active:scale-[0.98] transition-all shadow-[0_20px_40px_rgba(255,255,255,0.1)]"
-          >
-            ПОНЯТНО
-          </button>
-        </div>
-      </div>
-    </div>
+        </Dialog.Popup>
+      </Dialog.Portal>
+    </Dialog.Root>
   )
 }
 

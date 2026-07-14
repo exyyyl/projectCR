@@ -16,9 +16,6 @@ contextBridge.exposeInMainWorld('api', {
     readCurrentCrosshair: () => ipcRenderer.invoke('cs2:readCurrentCrosshair')
   },
   window: {
-    minimize: () => ipcRenderer.send('window:minimize'),
-    maximize: () => ipcRenderer.send('window:maximize'),
-    close: () => ipcRenderer.send('window:close'),
     onUpdateAvailable: (callback: (info: any) => void) => {
       const listener = (_event: any, info: any) => callback(info)
       ipcRenderer.on('update-available', listener)

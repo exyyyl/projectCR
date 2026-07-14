@@ -1,60 +1,35 @@
-// ─── VALORANT CROSSHAIR CODE PARSER ─────────────────────────────────────────
-// Based on reverse-engineered format from genesy/crosshair-codes
-//
-// Code format:  0;P;key;value;key;value;...
-// Sections:     P = Primary, A = ADS, S = Sniper
-// Line prefix:  0x = inner lines, 1x = outer lines
-//
-// Key mappings (PrimaryMapping):
-//   c = color index (0-8)     u = custom hex color
-//   h = outlines (bool)       t = outline thickness    o = outline opacity
-//   d = center dot (bool)     z = dot thickness        a = dot opacity
-//   m = override firing-error offset with crosshair offset (bool)
-//
-// Key mappings (LineMapping, prefixed 0 or 1):
-//   b = show (bool)     a = opacity      l = length
-//   v = vertical len    g = length_not_linked (bool)
-//   t = thickness       o = offset
-//   m = movement_error (bool)   s = movement_error_multiplier
-//   f = firing_error (bool)     e = firing_error_multiplier
+// VALORANT crosshair profile codes are semicolon-delimited settings grouped by
+// sections. P is the primary crosshair; A and S contain ADS/sniper settings.
 
-// VALORANT preset color palette (index → hex)
-const VAL_COLORS: Record<number, string> = {
-  0: '#FFFFFF', // White
-  1: '#00FF00', // Green
-  2: '#7FFF00', // Yellow-Green
-  3: '#FFFF00', // Yellow
-  4: '#00FFFF', // Cyan
-  5: '#FF69B4', // Pink
-  6: '#FF4655', // Red
-  7: '#FFFFFF', // White (custom fallback)
-  8: '#FFFFFF', // Custom color (use customColor field)
+const VALORANT_COLORS: Record<number, string> = {
+  0: '#FFFFFF',
+  1: '#00FF00',
+  2: '#7FFF00',
+  3: '#DFFF00',
+  4: '#FFFF00',
+  5: '#00FFFF',
+  6: '#FF00FF',
+  7: '#FF0000',
 }
 
 export interface ParsedValorantCrosshair {
   color: number
   customColor: string
-
   outlineEnabled: boolean
   outlineThickness: number
   outlineOpacity: number
-
   dotEnabled: boolean
   dotOpacity: number
   dotSize: number
-
-  // Inner lines (prefix 0)
   innerEnabled: boolean
   innerOpacity: number
   innerLength: number
-  innerVertical: number          // vertical length when not linked
+  innerVertical: number
   innerLengthNotLinked: boolean
   innerThickness: number
   innerOffset: number
   innerFiringError: boolean
   innerMovementError: boolean
-
-  // Outer lines (prefix 1)
   outerEnabled: boolean
   outerOpacity: number
   outerLength: number
@@ -64,24 +39,18 @@ export interface ParsedValorantCrosshair {
   outerOffset: number
   outerFiringError: boolean
   outerMovementError: boolean
-
-  // Global
   overrideFiringErrorOffset: boolean
 }
 
-// Defaults match genesy/crosshair-codes DEFAULT_PRIMARY_SETTINGS exactly
-const DEFAULT: ParsedValorantCrosshair = {
+const DEFAULT_VALORANT: ParsedValorantCrosshair = {
   color: 0,
   customColor: 'FFFFFF',
-
   outlineEnabled: true,
   outlineThickness: 1,
   outlineOpacity: 0.5,
-
   dotEnabled: false,
   dotOpacity: 1,
   dotSize: 2,
-
   innerEnabled: true,
   innerOpacity: 0.8,
   innerLength: 6,
@@ -91,7 +60,6 @@ const DEFAULT: ParsedValorantCrosshair = {
   innerOffset: 3,
   innerFiringError: true,
   innerMovementError: false,
-
   outerEnabled: true,
   outerOpacity: 0.35,
   outerLength: 2,
@@ -101,116 +69,191 @@ const DEFAULT: ParsedValorantCrosshair = {
   outerOffset: 10,
   outerFiringError: true,
   outerMovementError: true,
-
   overrideFiringErrorOffset: false,
 }
 
+function finiteNumber(value: string, fallback: number): number {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : fallback
+}
+
+function enabled(value: string): boolean {
+  return value === '1'
+}
+
 export function parseValorantCode(code: string): ParsedValorantCrosshair {
-  const p: ParsedValorantCrosshair = { ...DEFAULT }
-  if (!code || typeof code !== 'string') return p
+  const parsed = { ...DEFAULT_VALORANT }
+  if (!isValidValorantCode(code)) return parsed
 
-  const tokens = code.split(';')
-  // Skip version (tokens[0])
-  
-  let currentSection = '' // 'P', 'A', 'S', etc.
+  const tokens = code.trim().split(';')
+  let section = ''
 
-  for (let i = 1; i < tokens.length; i++) {
-    const token = tokens[i]
-    if (!token) continue
-
-    // Section markers: single letter sections or NAME
-    if (['P', 'A', 'S', 'NAME'].includes(token.toUpperCase())) {
-      currentSection = token.toUpperCase()
+  for (let index = 1; index < tokens.length; index += 1) {
+    const token = tokens[index]
+    // Section names are uppercase in exported codes. Lowercase `a` and `s`
+    // are ordinary setting keys and must not be mistaken for ADS/sniper.
+    if (token === 'P' || token === 'p' || token === 'A' || token === 'S' || token === 'NAME') {
+      section = token === 'p' ? 'P' : token
       continue
     }
 
-    // Key-Value pairs
-    const key = token
-    const val = tokens[i + 1]
-    if (val === undefined) break
-    i++ // Skip value in next iteration
+    const value = tokens[index + 1]
+    if (value === undefined) break
+    index += 1
 
-    const num = isNaN(parseFloat(val)) ? 0 : parseFloat(val)
-    const bool = val === '1'
+    // The card preview represents the normal primary crosshair only.
+    if (section !== '' && section !== 'P') continue
 
-    // We primarily care about the Primary (P) section or global tokens before any section
-    if (currentSection === 'P' || currentSection === '') {
-      if (key.startsWith('0')) {
-        const lk = key.slice(1)
-        switch (lk) {
-          case 'b': p.innerEnabled = bool; break
-          case 'a': p.innerOpacity = isNaN(num) ? 1 : num; break
-          case 'l': p.innerLength = num; break
-          case 'v': p.innerVertical = num; break
-          case 'g': p.innerLengthNotLinked = bool; break
-          case 't': p.innerThickness = num; break
-          case 'o': p.innerOffset = num; break
-          case 'f': p.innerFiringError = bool; break
-          case 'm': p.innerMovementError = bool; break
-        }
-      } else if (key.startsWith('1')) {
-        const lk = key.slice(1)
-        switch (lk) {
-          case 'b': p.outerEnabled = bool; break
-          case 'a': p.outerOpacity = isNaN(num) ? 1 : num; break
-          case 'l': p.outerLength = num; break
-          case 'v': p.outerVertical = num; break
-          case 'g': p.outerLengthNotLinked = bool; break
-          case 't': p.outerThickness = num; break
-          case 'o': p.outerOffset = num; break
-          case 'f': p.outerFiringError = bool; break
-          case 'm': p.outerMovementError = bool; break
-        }
-      } else {
-        switch (key) {
-          case 'c':
-            p.color = isNaN(num) ? 0 : Math.floor(num)
-            if (p.color !== 8) {
-              p.customColor = (VAL_COLORS[p.color] ?? '#FFFFFF').replace('#', '')
-            }
-            break
-          case 'u': p.customColor = val; break
-          case 'h': p.outlineEnabled = bool; break
-          case 't': p.outlineThickness = isNaN(num) ? 1 : num; break
-          case 'o': p.outlineOpacity = isNaN(num) ? 0.5 : num; break
-          case 'd': p.dotEnabled = bool; break
-          case 'z': p.dotSize = isNaN(num) ? 2 : num; break
-          case 'a': p.dotOpacity = isNaN(num) ? 1 : num; break
-          case 'm': p.overrideFiringErrorOffset = bool; break
-        }
+    const prefix = token[0]
+    const lineKey = token.slice(1)
+    const isInner = prefix === '0'
+    const isOuter = prefix === '1'
+
+    if (isInner || isOuter) {
+      const side = isInner ? 'inner' : 'outer'
+      switch (lineKey) {
+        case 'b': parsed[`${side}Enabled`] = enabled(value); break
+        case 'a': parsed[`${side}Opacity`] = finiteNumber(value, 1); break
+        case 'l': parsed[`${side}Length`] = finiteNumber(value, 0); break
+        case 'v': parsed[`${side}Vertical`] = finiteNumber(value, 0); break
+        case 'g': parsed[`${side}LengthNotLinked`] = enabled(value); break
+        case 't': parsed[`${side}Thickness`] = finiteNumber(value, 0); break
+        case 'o': parsed[`${side}Offset`] = finiteNumber(value, 0); break
+        case 'f': parsed[`${side}FiringError`] = enabled(value); break
+        case 'm': parsed[`${side}MovementError`] = enabled(value); break
       }
+      continue
+    }
+
+    switch (token) {
+      case 'c': parsed.color = Math.trunc(finiteNumber(value, 0)); break
+      case 'u': parsed.customColor = value.replace(/^#/, '').slice(0, 6).toUpperCase(); break
+      case 'h': parsed.outlineEnabled = enabled(value); break
+      case 't': parsed.outlineThickness = finiteNumber(value, 1); break
+      case 'o': parsed.outlineOpacity = finiteNumber(value, 0.5); break
+      case 'd': parsed.dotEnabled = enabled(value); break
+      case 'z': parsed.dotSize = finiteNumber(value, 2); break
+      case 'a': parsed.dotOpacity = finiteNumber(value, 1); break
+      case 'm': parsed.overrideFiringErrorOffset = enabled(value); break
     }
   }
 
-  return p
+  return parsed
 }
 
-// Effective gap = offset + FIXED_GAP(4) when firing_error=true and not overriding
-// This matches the reference calculateGap() function exactly
-export function calcGap(offset: number, firingError: boolean, override: boolean): number {
-  const FIXED_GAP = 4
-  return offset + (firingError && !override ? FIXED_GAP : 0)
-}
-
-export function getValorantColor(p: ParsedValorantCrosshair): string {
-  if (p.color === 8 && p.customColor && p.customColor.length >= 6) {
-    return `#${p.customColor.slice(0, 6)}`
+export function getValorantColor(crosshair: ParsedValorantCrosshair): string {
+  if (crosshair.color === 8 && /^[0-9a-f]{6}$/i.test(crosshair.customColor)) {
+    return `#${crosshair.customColor}`
   }
-  if (p.customColor && p.customColor.length >= 6) {
-    return `#${p.customColor.slice(0, 6)}`
-  }
-  return VAL_COLORS[p.color] ?? '#FFFFFF'
+  return VALORANT_COLORS[crosshair.color] ?? '#FFFFFF'
 }
 
-// ─── CS2 ─────────────────────────────────────────────────────────────────────
+// CS2 uses a 19-byte payload encoded as a 25-character Base57 value.
+const CS2_DICTIONARY = 'ABCDEFGHJKLMNOPQRSTUVWXYZabcdefhijkmnopqrstuvwxyz23456789'
+const CS2_PATTERN = /^CSGO-(?:[ABCDEFGHJKLMNOPQRSTUVWXYZabcdefhijkmnopqrstuvwxyz23456789]{5}-){4}[ABCDEFGHJKLMNOPQRSTUVWXYZabcdefhijkmnopqrstuvwxyz23456789]{5}$/
+
+export interface ParsedCS2Crosshair {
+  gap: number
+  outline: number
+  red: number
+  green: number
+  blue: number
+  alpha: number
+  splitDistance: number
+  followRecoil: boolean
+  fixedCrosshairGap: number
+  color: number
+  outlineEnabled: boolean
+  innerSplitAlpha: number
+  outerSplitAlpha: number
+  splitSizeRatio: number
+  thickness: number
+  centerDotEnabled: boolean
+  deployedWeaponGapEnabled: boolean
+  alphaEnabled: boolean
+  tStyleEnabled: boolean
+  style: number
+  length: number
+}
+
+function signedByte(value: number): number {
+  return value > 127 ? value - 256 : value
+}
+
+function decodeCS2Bytes(code: string): number[] | null {
+  if (!isValidCS2Code(code)) return null
+
+  const compact = code.trim().slice(5).replaceAll('-', '')
+  let value = 0n
+
+  for (const character of [...compact].reverse()) {
+    value = value * 57n + BigInt(CS2_DICTIONARY.indexOf(character))
+  }
+
+  const bytes = new Array<number>(19).fill(0)
+  for (let index = bytes.length - 1; index >= 0; index -= 1) {
+    bytes[index] = Number(value & 0xffn)
+    value >>= 8n
+  }
+  return bytes
+}
+
+export function parseCS2Code(code: string): ParsedCS2Crosshair | null {
+  const bytes = decodeCS2Bytes(code)
+  if (!bytes) return null
+
+  const flags = bytes[14] >> 4
+  return {
+    gap: signedByte(bytes[3]) / 10,
+    outline: bytes[4] / 2,
+    red: bytes[5],
+    green: bytes[6],
+    blue: bytes[7],
+    alpha: bytes[8],
+    splitDistance: bytes[9] & 0x7f,
+    followRecoil: (bytes[9] & 0x80) !== 0,
+    fixedCrosshairGap: signedByte(bytes[10]) / 10,
+    color: bytes[11] & 0x07,
+    outlineEnabled: (bytes[11] & 0x08) !== 0,
+    innerSplitAlpha: (bytes[11] >> 4) / 10,
+    outerSplitAlpha: (bytes[12] & 0x0f) / 10,
+    splitSizeRatio: (bytes[12] >> 4) / 10,
+    thickness: bytes[13] / 10,
+    centerDotEnabled: (flags & 0x01) !== 0,
+    deployedWeaponGapEnabled: (flags & 0x02) !== 0,
+    alphaEnabled: (flags & 0x04) !== 0,
+    tStyleEnabled: (flags & 0x08) !== 0,
+    style: (bytes[14] & 0x0f) >> 1,
+    length: bytes[15] / 10,
+  }
+}
+
+const CS2_COLORS: Record<number, string> = {
+  0: '#FF0000',
+  1: '#00FF00',
+  2: '#FFFF00',
+  3: '#0000FF',
+  4: '#00FFFF',
+}
+
+export function getCS2Color(crosshair: ParsedCS2Crosshair): string {
+  if (crosshair.color !== 5 && CS2_COLORS[crosshair.color]) return CS2_COLORS[crosshair.color]
+  return `#${[crosshair.red, crosshair.green, crosshair.blue]
+    .map(channel => channel.toString(16).padStart(2, '0'))
+    .join('')}`
+}
 
 export function isValidCS2Code(code: string): boolean {
-  return /^CSGO-[A-Za-z0-9]{5}-[A-Za-z0-9]{5}-[A-Za-z0-9]{5}-[A-Za-z0-9]{5}-[A-Za-z0-9]{5}$/.test(code)
+  return typeof code === 'string' && CS2_PATTERN.test(code.trim())
 }
 
 export function isValidValorantCode(code: string): boolean {
-  if (!code || typeof code !== 'string') return false
-  return /^\d+;/.test(code) && code.includes(';') && !/\s/.test(code)
+  if (typeof code !== 'string') return false
+  const normalized = code.trim()
+  if (!/^\d+;/.test(normalized) || /\s/.test(normalized)) return false
+
+  const tokens = normalized.split(';')
+  return tokens.length >= 3 && tokens.every(token => /^[A-Za-z0-9.#-]*$/.test(token))
 }
 
 export function detectGame(code: string): 'valorant' | 'cs2' | null {
@@ -221,5 +264,6 @@ export function detectGame(code: string): 'valorant' | 'cs2' | null {
 
 export function extractPreviewColor(game: 'valorant' | 'cs2', code: string): string {
   if (game === 'valorant') return getValorantColor(parseValorantCode(code))
-  return '#00CCCC'
+  const parsed = parseCS2Code(code)
+  return parsed ? getCS2Color(parsed) : '#FFFFFF'
 }

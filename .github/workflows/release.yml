@@ -3,30 +3,83 @@ name: Release
 on:
   push:
     tags:
-      - 'v*' # Trigger on tags like v0.1.0, v1.0.0, etc.
-  workflow_dispatch: # Allow manual trigger
+      - 'v*'
 
 permissions:
   contents: write
 
 jobs:
   build:
-    runs-on: windows-latest
+    name: Build ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows x64
+            os: windows-latest
+            args: --win --x64
+            artifact: windows-x64
+          - name: macOS Universal
+            os: macos-13
+            args: --mac --universal
+            artifact: macos-universal
+          - name: Linux x64
+            os: ubuntu-latest
+            args: --linux --x64
+            artifact: linux-x64
+
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
 
     steps:
-      - name: Checkout Code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22.12.0
           cache: 'npm'
 
-      - name: Install Dependencies
+      - name: Install dependencies
         run: npm ci
 
-      - name: Build and Publish
-        run: npm run publish
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Package
+        run: npm run package -- ${{ matrix.args }}
+
+      - name: Upload packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          if-no-files-found: error
+          path: |
+            dist/*.exe
+            dist/*.exe.blockmap
+            dist/*.dmg
+            dist/*.dmg.blockmap
+            dist/*.zip
+            dist/*.zip.blockmap
+            dist/*.AppImage
+            dist/*.deb
+            dist/latest*.yml
+
+  publish:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download packages
+        uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+          merge-multiple: true
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ProjectCR v0.5.0
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: release-artifacts/**/*

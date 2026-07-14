@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react'
 import { 
   Settings as SettingsIcon, 
   Info, 
-  Heart, 
   Code, 
   ExternalLink, 
   ShieldCheck, 
@@ -66,12 +65,6 @@ export function SettingsPanel() {
           </button>
         ))}
 
-        <div className="mt-auto pt-6 border-t border-white/[0.05] px-2">
-          <div className="flex items-center gap-2 text-[10px] font-black text-white/10 uppercase tracking-widest">
-            <Heart size={10} className="text-rose-500/50" />
-            ProjectCR v{version}
-          </div>
-        </div>
       </div>
 
       {/* Main Content */}
@@ -100,8 +93,8 @@ export function SettingsPanel() {
                 </div>
                 <div className="bg-amber-500/[0.02] border border-amber-500/10 rounded-2xl p-6">
                   <div>
-                    <p className="text-[13px] font-bold text-white/80">Превью прицелов работает некорректно</p>
-                    <p className="text-[11px] text-white/30 mt-1">Мы работаем над исправлением движка рендеринга для корректного отображения всех типов прицелов.</p>
+                    <p className="text-[13px] font-bold text-white/80">Превью прицелов может работать некорректно</p>
+                    <p className="text-[11px] text-white/30 mt-1">Ведётся работа над исправлением движка рендеринга для корректного отображения всех типов прицелов.</p>
                   </div>
                 </div>
               </div>

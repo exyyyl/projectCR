@@ -3,11 +3,40 @@ import { Tooltip } from '@base-ui/react'
 import { Crosshair } from '../types'
 import { CrosshairPreview } from './CrosshairPreview'
 import { DeleteConfirmModal } from './DeleteConfirmModal'
+import { CrosshairDetails } from './CrosshairDetails'
+import valorantIceboxScene from '../assets/game-scenes/valorant/icebox-yard.jpg'
+import valorantLotusScene from '../assets/game-scenes/valorant/lotus-rotunda.jpg'
+import valorantBreezeScene from '../assets/game-scenes/valorant/breeze-site.jpg'
+import cs2OverpassScene from '../assets/game-scenes/cs2/overpass-toilets.jpg'
+import cs2NukeScene from '../assets/game-scenes/cs2/nuke-ramp.jpg'
+import cs2DustScene from '../assets/game-scenes/cs2/dust2-doors.jpg'
 
 interface Props {
   crosshair: Crosshair
   onDelete: (id: string) => void
   onCopyCode: (code: string) => void
+}
+
+const CARD_SCENES = {
+  valorant: [
+    { image: valorantIceboxScene, label: 'Icebox · двор' },
+    { image: valorantLotusScene, label: 'Lotus · ротонда' },
+    { image: valorantBreezeScene, label: 'Breeze · точка' },
+  ],
+  cs2: [
+    { image: cs2OverpassScene, label: 'Overpass' },
+    { image: cs2NukeScene, label: 'Nuke' },
+    { image: cs2DustScene, label: 'Dust II' },
+  ],
+} as const
+
+function selectCardScene(game: Crosshair['game'], code: string) {
+  const scenes = CARD_SCENES[game]
+  let hash = 0
+  for (let index = 0; index < code.length; index += 1) {
+    hash = (hash * 31 + code.charCodeAt(index)) >>> 0
+  }
+  return scenes[hash % scenes.length]
 }
 
 function TipBtn({
@@ -22,13 +51,16 @@ function TipBtn({
   danger?: boolean
 }) {
   return (
-    <Tooltip.Provider delayDuration={400}>
+    <Tooltip.Provider>
       <Tooltip.Root>
         <Tooltip.Trigger
           render={
             <button
-              onClick={onClick}
-              className={`no-drag w-7 h-7 flex items-center justify-center rounded-lg transition-colors ${
+              onClick={(event) => {
+                event.stopPropagation()
+                onClick()
+              }}
+              className={`w-7 h-7 flex items-center justify-center rounded-lg transition-colors ${
                 danger
                   ? 'text-amoled-text-muted hover:text-red-400 hover:bg-red-400/10'
                   : 'text-amoled-text-muted hover:text-amoled-text hover:bg-amoled-border'
@@ -51,8 +83,10 @@ function TipBtn({
 export function CrosshairCard({ crosshair, onDelete, onCopyCode }: Props) {
   const [copied, setCopied] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [showDetails, setShowDetails] = useState(false)
   const tags: string[] = JSON.parse(crosshair.tags || '[]')
   const isVal = crosshair.game === 'valorant'
+  const scene = selectCardScene(crosshair.game, crosshair.code)
 
   const handleCopy = () => {
     onCopyCode(crosshair.code)
@@ -62,17 +96,40 @@ export function CrosshairCard({ crosshair, onDelete, onCopyCode }: Props) {
 
   return (
     <>
-      <div className="group bg-amoled-surface border border-amoled-border hover:border-amoled-border-strong rounded-2xl overflow-hidden transition-all duration-150">
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={() => setShowDetails(true)}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault()
+            setShowDetails(true)
+          }
+        }}
+        className="group cursor-pointer bg-amoled-surface border border-amoled-border hover:border-amoled-border-strong rounded-2xl overflow-hidden transition-all duration-150 outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+      >
         {/* Preview area */}
-        <div className="flex items-center justify-center bg-black py-5 relative">
-          <CrosshairPreview crosshair={crosshair} size={80} />
+        <div className="relative isolate flex h-36 items-center justify-center overflow-hidden bg-[#080A0D]">
+          <img
+            src={scene.image}
+            alt=""
+            aria-hidden="true"
+            draggable={false}
+            className="absolute inset-0 h-full w-full scale-[1.04] object-cover saturate-[0.78] brightness-[0.72] contrast-[0.92] transition-transform duration-500 ease-out group-hover:scale-[1.075]"
+          />
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(8,10,13,0.06)_0%,rgba(8,10,13,0.15)_52%,rgba(0,0,0,0.58)_100%)] shadow-[inset_0_-34px_42px_rgba(0,0,0,0.35)]"
+          />
+          <div className="relative z-10 [filter:drop-shadow(0_0_1px_rgba(0,0,0,0.95))_drop-shadow(0_2px_3px_rgba(0,0,0,0.65))]">
+            <CrosshairPreview crosshair={crosshair} size={124} magnification={2.8} autoFit />
+          </div>
 
           {/* Game chip */}
           <span
-            className="absolute top-2 left-2.5 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded"
+            className="absolute left-2.5 top-2 rounded-md border border-white/10 bg-black/60 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider backdrop-blur-md"
             style={{
               color: isVal ? '#FF4655' : '#E8A530',
-              background: isVal ? '#FF465512' : '#E8A53012',
             }}
           >
             {isVal ? 'VAL' : 'CS2'}
@@ -100,6 +157,14 @@ export function CrosshairCard({ crosshair, onDelete, onCopyCode }: Props) {
               </svg>
             </TipBtn>
           </div>
+
+          <div className="absolute bottom-2 left-2.5 text-[7px] font-bold uppercase tracking-[0.12em] text-white/45 drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">
+            {scene.label}
+          </div>
+
+          <div className="absolute bottom-2 right-2 rounded-lg border border-white/10 bg-black/55 px-2 py-1 text-[8px] font-black uppercase tracking-wider text-white/45 backdrop-blur-md transition-colors group-hover:bg-black/70 group-hover:text-white/80">
+            Подробнее
+          </div>
         </div>
 
         {/* Info */}
@@ -115,6 +180,13 @@ export function CrosshairCard({ crosshair, onDelete, onCopyCode }: Props) {
           )}
         </div>
       </div>
+
+      <CrosshairDetails
+        crosshair={crosshair}
+        open={showDetails}
+        onClose={() => setShowDetails(false)}
+        onCopyCode={onCopyCode}
+      />
 
       <DeleteConfirmModal 
         open={showDeleteModal}

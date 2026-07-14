@@ -44,11 +44,6 @@
   }
 }
 
-@layer utilities {
-  .drag-region { -webkit-app-region: drag; }
-  .no-drag { -webkit-app-region: no-drag; }
-}
-
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }

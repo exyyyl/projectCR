@@ -21,7 +21,9 @@ function createWindow(): void {
     minHeight: 600,
     show: false,
     autoHideMenuBar: true,
-    frame: false,
+    frame: true,
+    titleBarStyle: 'default',
+    titleBarOverlay: false,
     backgroundColor: '#000000',
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
@@ -109,14 +111,6 @@ app.on('window-all-closed', () => {
   }
 })
 
-// Window controls via IPC (frameless window)
-ipcMain.on('window:minimize', () => BrowserWindow.getFocusedWindow()?.minimize())
-ipcMain.on('window:maximize', () => {
-  const win = BrowserWindow.getFocusedWindow()
-  if (win?.isMaximized()) win.unmaximize()
-  else win?.maximize()
-})
-ipcMain.on('window:close', () => BrowserWindow.getFocusedWindow()?.close())
 ipcMain.on('update:install', () => autoUpdater.quitAndInstall())
 
 function registerIpcHandlers(): void {
