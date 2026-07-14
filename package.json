@@ -36,7 +36,8 @@
         ],
         "win": {
             "target": [
-                "nsis"
+                "nsis",
+                "zip"
             ],
             "artifactName": "${productName}-Setup-${version}-${arch}.${ext}",
             "executableName": "projectCR"
@@ -70,6 +71,7 @@
         },
         "nsis": {
             "oneClick": false,
+            "perMachine": true,
             "allowToChangeInstallationDirectory": true,
             "createDesktopShortcut": true,
             "createStartMenuShortcut": true,

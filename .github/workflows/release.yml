@@ -48,6 +48,11 @@ jobs:
       - name: Package
         run: npm run package -- ${{ matrix.args }}
 
+      - name: Name Windows portable package
+        if: matrix.artifact == 'windows-x64'
+        shell: pwsh
+        run: Get-ChildItem dist -Filter '*-Setup-*.zip' | Rename-Item -NewName { $_.Name -replace '-Setup-', '-Portable-' }
+
       - name: Upload packages
         uses: actions/upload-artifact@v4
         with:
@@ -81,5 +86,6 @@ jobs:
         with:
           name: ProjectCR v0.5.0
           generate_release_notes: true
+          overwrite_files: true
           fail_on_unmatched_files: true
           files: release-artifacts/**/*
