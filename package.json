@@ -3,7 +3,10 @@
     "version": "0.5.0",
     "description": "ProjectCR",
     "main": "out/main/index.js",
-    "author": "",
+    "author": {
+        "name": "exyyyl",
+        "email": "shoxa0010006@gmail.com"
+    },
     "private": true,
     "engines": {
         "node": ">=22.12 <23"
@@ -58,7 +61,8 @@
                 "deb"
             ],
             "artifactName": "${productName}-${version}-linux-${arch}.${ext}",
-            "category": "Utility"
+            "category": "Utility",
+            "maintainer": "exyyyl <shoxa0010006@gmail.com>"
         },
         "nsis": {
             "oneClick": false,
