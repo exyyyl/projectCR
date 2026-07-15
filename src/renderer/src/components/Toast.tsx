@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
+import { AlertCircle, CheckCircle2 } from 'lucide-react'
 
 interface ToastData {
   id: number
@@ -29,16 +30,19 @@ export function ToastContainer() {
   if (!toasts.length) return null
 
   return (
-    <div className="fixed bottom-5 left-1/2 -translate-x-1/2 flex flex-col gap-2 z-[100] pointer-events-none">
+    <div className="pointer-events-none fixed bottom-5 left-1/2 z-[220] flex -translate-x-1/2 flex-col items-center gap-2">
       {toasts.map(t => (
         <div
           key={t.id}
-          className={`px-4 py-2.5 rounded-xl text-sm font-medium shadow-2xl animate-slide-up border ${
+          className={`flex w-max max-w-[min(420px,calc(100vw-32px))] items-center gap-2.5 rounded-2xl border px-4 py-3 text-[12px] font-semibold shadow-[0_18px_52px_rgba(0,0,0,0.72)] animate-toast-in ${
             t.type === 'error'
-              ? 'bg-red-950 border-red-800/60 text-red-200'
-              : 'bg-amoled-elevated border-amoled-border-strong text-amoled-text'
+              ? 'border-red-400/20 bg-[#170B0D] text-red-100'
+              : 'border-white/[0.09] bg-[#111212] text-white/88'
           }`}
         >
+          {t.type === 'error'
+            ? <AlertCircle size={15} className="shrink-0 text-red-400" />
+            : <CheckCircle2 size={15} className="shrink-0 text-emerald-300/75" />}
           {t.msg}
         </div>
       ))}

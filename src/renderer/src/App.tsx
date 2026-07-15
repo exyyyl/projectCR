@@ -7,24 +7,34 @@ import { UpdateBanner } from './components/UpdateBanner'
 import { ReleaseNotesModal } from './components/ReleaseNotesModal'
 import { EmptyCrosshairs } from './components/EmptyCrosshairs'
 import { useCrosshairs } from './store/useCrosshairs'
+import { extractPreviewColor } from './lib/crosshair-parser'
 import { useAppUpdate } from './hooks/useAppUpdate'
-import { Game } from './types'
-import { Search, Plus, Crosshair as CrosshairIcon, Settings, ChevronDown, Users } from 'lucide-react'
+import { Crosshair, Game } from './types'
+import { Search, Plus, Crosshair as CrosshairIcon, Settings, Users } from 'lucide-react'
 import { SettingsPanel } from './components/SettingsPanel'
 import { LineupsPanel } from './components/LineupsPanel'
+import { Button } from './components/ui/button'
+import { Input } from './components/ui/input'
+import { LineupSelect } from './components/ui/LineupSelect'
 
 type TabValue = 'crosshairs' | 'lineups' | 'settings'
 
+const SORT_OPTIONS = [
+  { value: 'newest', label: 'По дате' },
+  { value: 'name', label: 'По названию' },
+  { value: 'game', label: 'По игре' }
+] as const
+
 export default function App() {
-  const { crosshairs, loading, add, remove, reload } = useCrosshairs()
+  const { crosshairs, loading, add, remove, update, reload } = useCrosshairs()
   const { state: updateState, hasUpdate, download, install } = useAppUpdate()
   const [tab, setTab] = useState<TabValue>('crosshairs')
   const [gameFilter, setGameFilter] = useState<'all' | Game>('all')
   const [search, setSearch] = useState('')
   const [sortBy, setBy] = useState<'newest' | 'name' | 'game'>('newest')
   const [sortOrder, setOrder] = useState<'asc' | 'desc'>('desc')
-  const [sortOpen, setSortOpen] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
+  const [editingCrosshair, setEditingCrosshair] = useState<Crosshair | null>(null)
   const [dismissedUpdate, setDismissedUpdate] = useState<string | null>(null)
 
   const updateKey = updateState.version ?? updateState.status
@@ -75,35 +85,32 @@ export default function App() {
                 {([
                   {
                     value: 'all', label: 'ВСЕ', count: counts.all,
-                    active: 'bg-white text-black shadow-[0_8px_24px_rgba(255,255,255,0.08)]',
-                    inactive: 'text-white/40 hover:bg-white/[0.05] hover:text-white/80',
-                    badge: 'bg-black/10 text-black/55'
+                    variant: 'default'
                   },
                   {
                     value: 'valorant', label: 'VALORANT', count: counts.valorant,
-                    active: 'bg-[#FF4655] text-white shadow-[0_8px_24px_rgba(255,70,85,0.22)]',
-                    inactive: 'text-[#FF6571]/55 hover:bg-[#FF4655]/10 hover:text-[#FF6571]',
-                    badge: 'bg-black/15 text-white/75'
+                    variant: 'valorant'
                   },
                   {
                     value: 'cs2', label: 'CS2', count: counts.cs2,
-                    active: 'bg-[#E8A530] text-black shadow-[0_8px_24px_rgba(232,165,48,0.2)]',
-                    inactive: 'text-[#E8A530]/55 hover:bg-[#E8A530]/10 hover:text-[#F2B544]',
-                    badge: 'bg-black/10 text-black/60'
+                    variant: 'cs2'
                   },
                 ] as const).map(item => {
                   const isActive = gameFilter === item.value
                   return (
-                    <button
+                    <Button
                       key={item.value}
+                      type="button"
+                      variant={isActive ? item.variant : 'ghost'}
+                      size="sm"
                       onClick={() => setGameFilter(item.value)}
-                      className={`flex h-9 min-w-28 items-center justify-center gap-2 rounded-xl px-4 text-[9px] font-black tracking-widest outline-none transition-all duration-200 ${isActive ? item.active : item.inactive}`}
+                      className="min-w-28 rounded-xl"
                     >
                       {item.label}
-                      <span className={`min-w-5 rounded-md px-1.5 py-0.5 text-center font-mono text-[8px] ${isActive ? item.badge : 'bg-white/[0.04] text-current opacity-55'}`}>
+                      <span className={`min-w-5 rounded-md px-1.5 py-0.5 text-center font-mono text-[8px] ${isActive ? 'bg-black/10 opacity-65' : 'bg-white/[0.04] opacity-55'}`}>
                         {item.count}
                       </span>
-                    </button>
+                    </Button>
                   )
                 })}
               </div>
@@ -118,12 +125,12 @@ export default function App() {
                     search ? 'text-white' : 'text-white/20'
                   } group-focus-within:text-white`} 
                 />
-                <input
+                <Input
                   type="text"
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   placeholder="ПОИСК..."
-                  className="bg-transparent flex-1 ml-3 text-[11px] font-black tracking-[0.1em] text-white placeholder-white/10 outline-none border-none focus:ring-0"
+                  className="ml-1 min-w-0 flex-1 border-none bg-transparent px-2 text-[10px] font-black tracking-[0.1em] placeholder:text-white/10 focus:border-none focus-visible:ring-0"
                 />
               </div>
 
@@ -131,9 +138,12 @@ export default function App() {
               <div className="flex items-center gap-2">
                 {/* Integrated Sort Control */}
                 <div className="flex items-center bg-white/[0.02] border border-white/[0.05] rounded-xl relative">
-                  <button
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
                     onClick={() => setOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
-                    className="w-10 h-10 flex items-center justify-center border-r border-white/[0.05] text-white/40 hover:text-white hover:bg-white/5 transition-all rounded-l-xl"
+                    className="rounded-r-none border-r border-white/[0.05]"
                     title={sortOrder === 'asc' ? 'По возрастанию' : 'По убыванию'}
                   >
                     {sortOrder === 'asc' ? (
@@ -145,58 +155,25 @@ export default function App() {
                         <path d="m3 16 4 4 4-4"/><path d="M7 20V4"/><path d="M11 4h10"/><path d="M11 8h7"/><path d="M11 12h4"/>
                       </svg>
                     )}
-                  </button>
-                  
-                  {/* Custom Select Trigger */}
-                  <div className="relative">
-                    <button 
-                      onClick={() => setSortOpen(!sortOpen)}
-                      className="flex items-center h-10 pl-4 pr-3 text-[10px] font-black text-white/60 hover:text-white transition-colors uppercase tracking-widest gap-2"
-                    >
-                      {sortBy === 'newest' ? 'По дате' : sortBy === 'name' ? 'По названию' : 'По игре'}
-                      <ChevronDown size={14} className={`transition-transform duration-300 ${sortOpen ? 'rotate-180' : ''}`} />
-                    </button>
-
-                    {/* Custom Dropdown Menu */}
-                    {sortOpen && (
-                      <>
-                        <div 
-                          className="fixed inset-0 z-40" 
-                          onClick={() => setSortOpen(false)} 
-                        />
-                        <div className="absolute top-full right-0 mt-2 w-48 bg-[#0A0A0A] border border-white/[0.05] rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden z-50 animate-fade-in origin-top-right">
-                          {([
-                            { value: 'newest', label: 'По дате' },
-                            { value: 'name', label: 'По названию' },
-                            { value: 'game', label: 'По игре' }
-                          ] as const).map(opt => (
-                            <button
-                              key={opt.value}
-                              onClick={() => { setBy(opt.value); setSortOpen(false) }}
-                              className={`w-full px-5 py-4 text-left text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-between
-                                ${sortBy === opt.value 
-                                  ? 'bg-white/5 text-white' 
-                                  : 'text-white/30 hover:bg-white/[0.02] hover:text-white/60'
-                                }`}
-                            >
-                              {opt.label}
-                              {sortBy === opt.value && <div className="w-1 h-1 rounded-full bg-white shadow-[0_0_8px_white]" />}
-                            </button>
-                          ))}
-                        </div>
-                      </>
-                    )}
-                  </div>
+                  </Button>
+                  <LineupSelect
+                    value={sortBy}
+                    options={SORT_OPTIONS}
+                    onChange={setBy}
+                    ariaLabel="Сортировка прицелов"
+                    className="h-10 w-36 rounded-l-none border-0 bg-transparent text-[10px] font-black uppercase tracking-widest"
+                  />
                 </div>
 
                 {/* Add Icon Button */}
-                <button
-                  onClick={() => setModalOpen(true)}
-                  className="w-10 h-10 flex items-center justify-center bg-white text-black rounded-xl hover:scale-[1.05] active:scale-[0.95] transition-all shadow-[0_8px_20px_rgba(255,255,255,0.05)]"
+                <Button
+                  type="button"
+                  size="icon"
+                  onClick={() => { setEditingCrosshair(null); setModalOpen(true) }}
                   title="Добавить прицел"
                 >
                   <Plus size={20} strokeWidth={3} />
-                </button>
+                </Button>
               </div>
             </div>
 
@@ -225,6 +202,7 @@ export default function App() {
                       crosshair={c}
                       onDelete={async (id) => { await remove(id); toast('Удалено') }}
                       onCopyCode={(code) => { navigator.clipboard.writeText(code); toast('Код скопирован') }}
+                      onEdit={(crosshair) => { setEditingCrosshair(crosshair); setModalOpen(true) }}
                     />
                   ))}
                 </div>
@@ -307,10 +285,25 @@ export default function App() {
         </nav>
       </Tabs.Root>
 
-      <AddPanel 
-        open={modalOpen} 
-        onClose={() => setModalOpen(false)} 
-        onAdd={async (name, code, game) => { await add(name, code, game) }}
+      <AddPanel
+        open={modalOpen}
+        crosshair={editingCrosshair}
+        onClose={() => { setModalOpen(false); setEditingCrosshair(null) }}
+        onSave={async (name, code, game) => {
+          if (editingCrosshair) {
+            await update({
+              ...editingCrosshair,
+              name,
+              code,
+              game,
+              color_preview: extractPreviewColor(game, code)
+            })
+            toast('Прицел обновлён')
+          } else {
+            await add(name, code, game)
+            toast('Прицел добавлен')
+          }
+        }}
       />
       <ReleaseNotesModal />
       <ToastContainer />

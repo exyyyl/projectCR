@@ -1,4 +1,5 @@
 import { Crosshair as CrosshairIcon, Plus } from 'lucide-react'
+import { Button } from './ui/button'
 
 interface EmptyCrosshairsProps {
   search: string
@@ -26,13 +27,15 @@ export function EmptyCrosshairs({ search, onClearSearch, onAdd }: EmptyCrosshair
             <p className="mb-8 text-sm leading-relaxed text-white/40">
               По запросу «<span className="text-white/60">{search}</span>» прицелов нет. Попробуйте другое слово.
             </p>
-            <button
+            <Button
               type="button"
+              variant="secondary"
+              size="lg"
               onClick={onClearSearch}
-              className="w-full rounded-2xl border border-white/5 bg-white/5 py-4 text-[11px] font-black uppercase tracking-[0.2em] text-white outline-none transition-all hover:border-white/10 hover:bg-white/10 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-white/50"
+              className="h-12 w-full rounded-2xl tracking-[0.18em]"
             >
               Сбросить поиск
-            </button>
+            </Button>
           </>
         ) : (
           <>
@@ -40,14 +43,15 @@ export function EmptyCrosshairs({ search, onClearSearch, onAdd }: EmptyCrosshair
             <p className="mb-10 text-sm leading-relaxed text-white/40">
               Добавьте первый прицел, чтобы сохранить код и увидеть его точное превью.
             </p>
-            <button
+            <Button
               type="button"
+              size="lg"
               onClick={onAdd}
-              className="group flex w-full items-center justify-center gap-3 rounded-2xl bg-white py-4 text-[11px] font-black uppercase tracking-[0.2em] text-black shadow-[0_20px_40px_rgba(255,255,255,0.1)] outline-none transition-all hover:scale-[1.02] active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-white/50"
+              className="h-12 w-full rounded-2xl tracking-[0.18em] shadow-[0_20px_40px_rgba(255,255,255,0.1)]"
             >
               <Plus size={16} strokeWidth={4} />
               Добавить
-            </button>
+            </Button>
           </>
         )}
       </div>

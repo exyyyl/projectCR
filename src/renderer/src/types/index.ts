@@ -9,6 +9,28 @@ export interface Crosshair {
   created_at: string
 }
 
+export type BuiltinLineupKind = 'smoke' | 'flash' | 'molly' | 'grenade' | 'ability' | 'other'
+export type CustomLineupKind = `custom:${string}`
+export type LineupKind = BuiltinLineupKind | CustomLineupKind
+export type LineupSide = 'attack' | 'defense' | 'both'
+
+export interface Lineup {
+  id: string
+  game: Game
+  map: string
+  name: string
+  kind: LineupKind
+  side: LineupSide
+  start_position: string
+  target_position: string
+  instructions: string
+  start_image: string
+  aim_image: string
+  result_image: string
+  extra_images: string[]
+  created_at: string
+}
+
 export interface ValorantCrosshairParams {
   color: number
   outlineEnabled: boolean
@@ -43,6 +65,11 @@ export interface CrosshairTransferResult {
   count: number
 }
 
+export interface DataDeleteResult {
+  success: boolean
+  count: number
+}
+
 export type UpdateStatus = 'idle' | 'available' | 'downloading' | 'downloaded' | 'error'
 
 export interface AppUpdateState {
@@ -60,8 +87,18 @@ declare global {
         add: (c: Crosshair) => Promise<Crosshair>
         update: (c: Crosshair) => Promise<Crosshair>
         delete: (id: string) => Promise<{ success: boolean }>
+        deleteAll: () => Promise<DataDeleteResult>
         exportFile: () => Promise<CrosshairTransferResult>
         importFile: () => Promise<CrosshairTransferResult>
+      }
+      lineups: {
+        getAll: () => Promise<Lineup[]>
+        add: (lineup: Lineup) => Promise<Lineup>
+        update: (lineup: Lineup) => Promise<Lineup>
+        delete: (id: string) => Promise<{ success: boolean }>
+        deleteAll: () => Promise<DataDeleteResult>
+        pickImage: () => Promise<string | null>
+        discardImages: (urls: string[]) => Promise<void>
       }
       valorant: {
         getStatus: () => Promise<{ connected: boolean; gameName?: string }>

@@ -23,8 +23,18 @@ contextBridge.exposeInMainWorld('api', {
     add: (c: unknown) => ipcRenderer.invoke('crosshairs:add', c),
     update: (c: unknown) => ipcRenderer.invoke('crosshairs:update', c),
     delete: (id: string) => ipcRenderer.invoke('crosshairs:delete', id),
+    deleteAll: () => ipcRenderer.invoke('crosshairs:deleteAll'),
     exportFile: (): Promise<CrosshairTransferResult> => ipcRenderer.invoke('crosshairs:export'),
     importFile: (): Promise<CrosshairTransferResult> => ipcRenderer.invoke('crosshairs:import')
+  },
+  lineups: {
+    getAll: () => ipcRenderer.invoke('lineups:getAll'),
+    add: (lineup: unknown) => ipcRenderer.invoke('lineups:add', lineup),
+    update: (lineup: unknown) => ipcRenderer.invoke('lineups:update', lineup),
+    delete: (id: string) => ipcRenderer.invoke('lineups:delete', id),
+    deleteAll: () => ipcRenderer.invoke('lineups:deleteAll'),
+    pickImage: (): Promise<string | null> => ipcRenderer.invoke('lineups:pickImage'),
+    discardImages: (urls: string[]): Promise<void> => ipcRenderer.invoke('lineups:discardImages', urls)
   },
   valorant: {
     getStatus: () => ipcRenderer.invoke('valorant:getStatus'),

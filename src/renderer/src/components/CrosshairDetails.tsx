@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { Dialog } from '@base-ui/react'
-import { Check, Copy, Focus, Maximize2, X } from 'lucide-react'
+import { Check, Copy, Focus, Maximize2, Pencil, X } from 'lucide-react'
 import { Crosshair } from '../types'
 import { getCS2Color, getValorantColor, parseCS2Code, parseValorantCode } from '../lib/crosshair-parser'
 import { CrosshairPreview } from './CrosshairPreview'
@@ -16,6 +16,7 @@ interface Props {
   open: boolean
   onClose: () => void
   onCopyCode: (code: string) => void
+  onEdit: () => void
 }
 
 const SCENES_BY_GAME = {
@@ -31,7 +32,7 @@ const SCENES_BY_GAME = {
   ],
 } as const
 
-export function CrosshairDetails({ crosshair, open, onClose, onCopyCode }: Props) {
+export function CrosshairDetails({ crosshair, open, onClose, onCopyCode, onEdit }: Props) {
   const [sceneIndex, setSceneIndex] = useState(0)
   const [zoom, setZoom] = useState<1 | 3>(1)
   const [copied, setCopied] = useState(false)
@@ -187,6 +188,14 @@ export function CrosshairDetails({ crosshair, open, onClose, onCopyCode }: Props
                 ))}
               </dl>
             </div>
+
+            <button
+              type="button"
+              onClick={onEdit}
+              className="mt-auto flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.035] text-[9px] font-black uppercase tracking-[0.14em] text-white/55 transition-colors hover:border-white/15 hover:bg-white/[0.06] hover:text-white"
+            >
+              <Pencil size={14} /> Изменить
+            </button>
 
           </aside>
         </Dialog.Popup>

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ArrowUpRight, Check, Copy, Trash2 } from 'lucide-react'
+import { ArrowUpRight, Check, Pencil, Trash2 } from 'lucide-react'
 import type { Crosshair } from '../types'
 import { CrosshairPreview } from './CrosshairPreview'
 import { DeleteConfirmModal } from './DeleteConfirmModal'
@@ -15,6 +15,7 @@ interface CrosshairCardProps {
   crosshair: Crosshair
   onDelete: (id: string) => void
   onCopyCode: (code: string) => void
+  onEdit: (crosshair: Crosshair) => void
 }
 
 const CARD_SCENES = {
@@ -39,7 +40,7 @@ function selectCardScene(game: Crosshair['game'], code: string) {
   return scenes[hash % scenes.length]
 }
 
-export function CrosshairCard({ crosshair, onDelete, onCopyCode }: CrosshairCardProps) {
+export function CrosshairCard({ crosshair, onDelete, onCopyCode, onEdit }: CrosshairCardProps) {
   const [copied, setCopied] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [showDetails, setShowDetails] = useState(false)
@@ -54,20 +55,20 @@ export function CrosshairCard({ crosshair, onDelete, onCopyCode }: CrosshairCard
 
   return (
     <>
-      <article className="group overflow-hidden rounded-2xl border border-amoled-border bg-amoled-surface transition-all duration-150 hover:-translate-y-0.5 hover:border-amoled-border-strong hover:shadow-[0_16px_32px_rgba(0,0,0,0.35)]">
+      <article className="group isolate overflow-hidden rounded-2xl border border-amoled-border bg-amoled-surface [backface-visibility:hidden] transition-[border-color,box-shadow] duration-200 hover:border-amoled-border-strong hover:shadow-[0_16px_32px_rgba(0,0,0,0.35)]">
         <button
           type="button"
           onClick={() => setShowDetails(true)}
           className="block w-full text-left outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/35"
           aria-label={`Открыть прицел ${crosshair.name}`}
         >
-          <div className="relative isolate flex h-36 items-center justify-center overflow-hidden bg-[#080A0D]">
+          <div className="relative isolate flex h-36 items-center justify-center overflow-hidden rounded-t-[15px] bg-[#080A0D] [backface-visibility:hidden]">
             <img
               src={scene.image}
               alt=""
               aria-hidden="true"
               draggable={false}
-              className="absolute inset-0 h-full w-full scale-[1.04] object-cover saturate-[0.78] brightness-[0.72] contrast-[0.92] transition-transform duration-500 ease-out group-hover:scale-[1.075]"
+              className="absolute inset-0 h-full w-full scale-[1.04] transform-gpu object-cover saturate-[0.78] brightness-[0.72] contrast-[0.92] [backface-visibility:hidden] transition-transform duration-500 ease-out group-hover:scale-[1.075]"
             />
             <div
               aria-hidden="true"
@@ -106,8 +107,18 @@ export function CrosshairCard({ crosshair, onDelete, onCopyCode }: CrosshairCard
                 : 'text-white/48 hover:bg-white/[0.055] hover:text-white'
             }`}
           >
-            {copied ? <Check size={14} strokeWidth={2.6} /> : <Copy size={14} />}
+            {copied ? <Check size={14} strokeWidth={2.6} /> : null}
             <span>{copied ? 'Скопировано' : 'Копировать'}</span>
+          </button>
+          <div className="w-px bg-white/[0.06]" aria-hidden="true" />
+          <button
+            type="button"
+            onClick={() => onEdit(crosshair)}
+            className="flex w-11 shrink-0 items-center justify-center text-white/32 outline-none transition-colors hover:bg-white/[0.055] hover:text-white focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/40"
+            aria-label={`Изменить прицел ${crosshair.name}`}
+            title="Изменить"
+          >
+            <Pencil size={14} />
           </button>
           <div className="w-px bg-white/[0.06]" aria-hidden="true" />
           <button
@@ -127,6 +138,10 @@ export function CrosshairCard({ crosshair, onDelete, onCopyCode }: CrosshairCard
         open={showDetails}
         onClose={() => setShowDetails(false)}
         onCopyCode={onCopyCode}
+        onEdit={() => {
+          setShowDetails(false)
+          onEdit(crosshair)
+        }}
       />
 
       <DeleteConfirmModal

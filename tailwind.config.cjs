@@ -31,8 +31,8 @@ module.exports = {
         }
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-        mono: ['JetBrains Mono', 'Consolas', 'monospace']
+        sans: ['Onest Variable', 'Onest', 'system-ui', 'sans-serif'],
+        mono: ['JetBrains Mono Variable', 'JetBrains Mono', 'Consolas', 'monospace']
       },
       borderRadius: {
         'xl': '12px',

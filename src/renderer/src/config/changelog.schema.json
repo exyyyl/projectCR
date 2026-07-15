@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ProjectCR patch notes",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["releases"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "releases": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/release" }
+    }
+  },
+  "$defs": {
+    "scope": {
+      "type": "string",
+      "enum": ["crosshairs", "lineups", "ui", "settings", "updates", "data", "system"]
+    },
+    "item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scope", "text"],
+      "properties": {
+        "scope": { "$ref": "#/$defs/scope" },
+        "text": { "type": "string", "minLength": 1 }
+      }
+    },
+    "section": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/item" }
+    },
+    "release": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "sections"],
+      "properties": {
+        "version": { "type": "string", "minLength": 1 },
+        "date": { "type": "string" },
+        "sections": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["new", "fixed", "changed", "improved"],
+          "properties": {
+            "new": { "$ref": "#/$defs/section" },
+            "fixed": { "$ref": "#/$defs/section" },
+            "changed": { "$ref": "#/$defs/section" },
+            "improved": { "$ref": "#/$defs/section" }
+          }
+        }
+      }
+    }
+  }
+}

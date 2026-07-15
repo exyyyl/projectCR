@@ -1,13 +1,28 @@
+import changelogData from './changelog.json'
+
+export type ChangelogSection = 'new' | 'fixed' | 'changed' | 'improved'
+export type ChangelogScope =
+  | 'crosshairs'
+  | 'lineups'
+  | 'ui'
+  | 'settings'
+  | 'updates'
+  | 'data'
+  | 'system'
+
 export interface ChangelogItem {
-  title: string
-  desc: string
+  scope: ChangelogScope
+  text: string
 }
 
-export const CHANGELOG: Record<string, ChangelogItem[]> = {
-  '0.5': [
-    {
-      title: 'Описание появится скоро',
-      desc: 'Здесь будут собраны изменения и улучшения будущих обновлений ProjectCR.',
-    },
-  ],
+export interface ChangelogRelease {
+  version: string
+  date?: string
+  sections: Record<ChangelogSection, ChangelogItem[]>
 }
+
+interface ChangelogFile {
+  releases: ChangelogRelease[]
+}
+
+export const CHANGELOG = changelogData as ChangelogFile

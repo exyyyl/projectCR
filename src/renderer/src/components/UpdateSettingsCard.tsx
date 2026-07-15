@@ -1,5 +1,7 @@
 import { Check, Download, RefreshCw, RotateCw } from 'lucide-react'
 import type { AppUpdateState } from '../types'
+import { Button } from './ui/button'
+import { Card } from './ui/card'
 
 interface UpdateSettingsCardProps {
   state: AppUpdateState
@@ -28,7 +30,7 @@ export function UpdateSettingsCard({
           : 'Не удалось обновить'
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-white/[0.07] bg-[#080808]">
+    <Card>
       <div className="flex h-16 items-center justify-between gap-5 px-5">
         <div className="flex min-w-0 items-center gap-3.5">
           <div className={`flex size-9 shrink-0 items-center justify-center rounded-xl border ${
@@ -46,25 +48,25 @@ export function UpdateSettingsCard({
         )}
 
         {(state.status === 'available' || state.status === 'error') && (
-          <button
+          <Button
             type="button"
+            size="sm"
             onClick={onDownload}
-            className="flex h-9 shrink-0 items-center gap-2 rounded-xl bg-white px-3.5 text-[9px] font-black uppercase tracking-widest text-black outline-none transition-transform hover:scale-[1.02] active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-white/60"
           >
             {state.status === 'error' ? <RefreshCw size={14} /> : <Download size={14} />}
             {state.status === 'error' ? 'Повторить' : 'Загрузить'}
-          </button>
+          </Button>
         )}
 
         {isDownloaded && (
-          <button
+          <Button
             type="button"
+            size="sm"
             onClick={onInstall}
-            className="flex h-9 shrink-0 items-center gap-2 rounded-xl bg-white px-3.5 text-[9px] font-black uppercase tracking-widest text-black outline-none transition-transform hover:scale-[1.02] active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-white/60"
           >
             <RotateCw size={14} />
             Установить
-          </button>
+          </Button>
         )}
       </div>
 
@@ -76,6 +78,6 @@ export function UpdateSettingsCard({
           />
         </div>
       )}
-    </section>
+    </Card>
   )
 }
