@@ -1,6 +1,6 @@
 {
     "name": "projectcr",
-    "version": "0.5.0",
+    "version": "0.5.1",
     "description": "ProjectCR",
     "main": "out/main/index.js",
     "author": {

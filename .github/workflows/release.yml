@@ -84,7 +84,7 @@ jobs:
       - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
-          name: ProjectCR v0.5.0
+          name: ProjectCR ${{ github.ref_name }}
           generate_release_notes: true
           overwrite_files: true
           fail_on_unmatched_files: true

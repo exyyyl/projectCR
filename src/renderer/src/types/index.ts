@@ -5,8 +5,6 @@ export interface Crosshair {
   game: Game
   name: string
   code: string
-  tags: string
-  note: string
   color_preview: string
   created_at: string
 }
@@ -35,6 +33,25 @@ export interface ValorantCrosshairParams {
   customColor?: string
 }
 
+export interface AppSettings {
+  launchAtStartup: boolean
+  runInBackground: boolean
+}
+
+export interface CrosshairTransferResult {
+  status: 'success' | 'cancelled'
+  count: number
+}
+
+export type UpdateStatus = 'idle' | 'available' | 'downloading' | 'downloaded' | 'error'
+
+export interface AppUpdateState {
+  status: UpdateStatus
+  version: string | null
+  progress: number
+  error: string | null
+}
+
 declare global {
   interface Window {
     api: {
@@ -43,6 +60,8 @@ declare global {
         add: (c: Crosshair) => Promise<Crosshair>
         update: (c: Crosshair) => Promise<Crosshair>
         delete: (id: string) => Promise<{ success: boolean }>
+        exportFile: () => Promise<CrosshairTransferResult>
+        importFile: () => Promise<CrosshairTransferResult>
       }
       valorant: {
         getStatus: () => Promise<{ connected: boolean; gameName?: string }>
@@ -52,10 +71,15 @@ declare global {
         applyCrosshair: (code: string) => Promise<{ success: boolean; error?: string }>
         readCurrentCrosshair: () => Promise<{ code: string | null }>
       }
+      settings: {
+        get: () => Promise<AppSettings>
+        update: (patch: Partial<AppSettings>) => Promise<AppSettings>
+      }
       window: {
-        onUpdateAvailable: (callback: (info: any) => void) => () => void
-        onUpdateDownloaded: (callback: (info: any) => void) => () => void
-        installUpdate: () => void
+        getUpdateState: () => Promise<AppUpdateState>
+        onUpdateState: (callback: (state: AppUpdateState) => void) => () => void
+        downloadUpdate: () => Promise<AppUpdateState>
+        installUpdate: () => Promise<boolean>
         getVersion: () => Promise<string>
       }
     }

@@ -1,20 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Game } from '../types'
-import { detectGame, extractPreviewColor } from '../lib/crosshair-parser'
+import { detectGame } from '../lib/crosshair-parser'
 import { CrosshairPreview } from './CrosshairPreview'
 import { Crosshair } from '../types'
 
 interface Props {
   open: boolean
   onClose: () => void
-  onAdd: (name: string, code: string, game: Game, note: string, tags: string[]) => Promise<void>
+  onAdd: (name: string, code: string, game: Game) => Promise<void>
 }
 
 export function AddPanel({ open, onClose, onAdd }: Props) {
   const [code, setCode] = useState('')
   const [name, setName] = useState('')
-  const [note, setNote] = useState('')
-  const [tagInput, setTagInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const codeRef = useRef<HTMLInputElement>(null)
@@ -28,8 +26,6 @@ export function AddPanel({ open, onClose, onAdd }: Props) {
         game: detectedGame!,
         name: '',
         code: code.trim(),
-        tags: '[]',
-        note: '',
         color_preview: '',
         created_at: ''
       }
@@ -51,7 +47,7 @@ export function AddPanel({ open, onClose, onAdd }: Props) {
   }, [open])
 
   const reset = () => {
-    setCode(''); setName(''); setNote(''); setTagInput(''); setError('')
+    setCode(''); setName(''); setError('')
   }
 
   const handleClose = () => {
@@ -66,10 +62,7 @@ export function AddPanel({ open, onClose, onAdd }: Props) {
     setLoading(true)
     setError('')
     try {
-      const tags = tagInput.trim()
-        ? tagInput.split(',').map(t => t.trim()).filter(Boolean)
-        : []
-      await onAdd(name.trim(), code.trim(), detectedGame!, note.trim(), tags)
+      await onAdd(name.trim(), code.trim(), detectedGame!)
       handleClose()
     } catch {
       setError('Ошибка при сохранении')
@@ -208,34 +201,6 @@ export function AddPanel({ open, onClose, onAdd }: Props) {
               onChange={e => { setName(e.target.value); setError('') }}
               placeholder="TenZ, NiKo, мой прицел..."
               className="input-base"
-            />
-          </div>
-
-          {/* Tags */}
-          <div>
-            <label className="block text-xs font-medium text-amoled-text-secondary mb-1.5">
-              Теги
-              <span className="text-amoled-text-muted font-normal ml-1">через запятую</span>
-            </label>
-            <input
-              value={tagInput}
-              onChange={e => setTagInput(e.target.value)}
-              placeholder="pro, dot, small"
-              className="input-base"
-            />
-          </div>
-
-          {/* Note */}
-          <div>
-            <label className="block text-xs font-medium text-amoled-text-secondary mb-1.5">
-              Заметка
-            </label>
-            <textarea
-              value={note}
-              onChange={e => setNote(e.target.value)}
-              placeholder="Откуда взят, при каком DPI хорош..."
-              rows={3}
-              className="input-base resize-none"
             />
           </div>
 

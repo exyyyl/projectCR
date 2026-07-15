@@ -4,20 +4,17 @@ import { Game } from '../types'
 import { detectGame } from '../lib/crosshair-parser'
 import { CrosshairPreview } from './CrosshairPreview'
 import { Crosshair } from '../types'
-import { nanoid } from '../lib/nanoid'
 import { extractPreviewColor } from '../lib/crosshair-parser'
 
 interface Props {
   open: boolean
   onOpenChange: (o: boolean) => void
-  onAdd: (name: string, code: string, game: Game, note: string, tags: string[]) => Promise<void>
+  onAdd: (name: string, code: string, game: Game) => Promise<void>
 }
 
 export function AddCrosshairModal({ open, onOpenChange, onAdd }: Props) {
   const [name, setName] = useState('')
   const [code, setCode] = useState('')
-  const [note, setNote] = useState('')
-  const [tagInput, setTagInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -29,14 +26,12 @@ export function AddCrosshairModal({ open, onOpenChange, onAdd }: Props) {
     game: detectedGame!,
     name: name || 'Preview',
     code: code.trim(),
-    tags: '[]',
-    note: '',
     color_preview: extractPreviewColor(detectedGame!, code.trim()),
     created_at: ''
   } : null
 
   const reset = () => {
-    setName(''); setCode(''); setNote(''); setTagInput(''); setError('')
+    setName(''); setCode(''); setError('')
   }
 
   const handleClose = () => {
@@ -50,8 +45,7 @@ export function AddCrosshairModal({ open, onOpenChange, onAdd }: Props) {
     if (!name.trim()) return setError('Введи название')
     setLoading(true); setError('')
     try {
-      const tags = tagInput.trim() ? tagInput.split(',').map(t => t.trim()).filter(Boolean) : []
-      await onAdd(name.trim(), code.trim(), detectedGame!, note.trim(), tags)
+      await onAdd(name.trim(), code.trim(), detectedGame!)
       handleClose()
     } catch {
       setError('Ошибка при сохранении')
@@ -115,30 +109,6 @@ export function AddCrosshairModal({ open, onOpenChange, onAdd }: Props) {
                     />
                   </div>
 
-                  {/* Tags */}
-                  <div>
-                    <label className="block text-xs font-medium text-amoled-text-secondary mb-1.5">
-                      Теги <span className="text-amoled-text-muted font-normal">(через запятую)</span>
-                    </label>
-                    <input
-                      value={tagInput}
-                      onChange={e => setTagInput(e.target.value)}
-                      placeholder="pro, small, dot"
-                      className="input-base"
-                    />
-                  </div>
-
-                  {/* Note */}
-                  <div>
-                    <label className="block text-xs font-medium text-amoled-text-secondary mb-1.5">Заметка</label>
-                    <textarea
-                      value={note}
-                      onChange={e => setNote(e.target.value)}
-                      placeholder="Необязательно..."
-                      rows={2}
-                      className="input-base resize-none"
-                    />
-                  </div>
                 </div>
 
                 {/* Right: live preview */}

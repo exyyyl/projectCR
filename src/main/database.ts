@@ -6,7 +6,7 @@ import { mkdirSync } from 'fs'
 const dbPath = join(app.getPath('userData'), 'crosshairs.db')
 mkdirSync(app.getPath('userData'), { recursive: true })
 
-export const db = new Database(dbPath)
+export const db: Database.Database = new Database(dbPath)
 
 export function initDatabase(): void {
   db.exec(`

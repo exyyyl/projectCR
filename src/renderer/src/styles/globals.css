@@ -32,11 +32,6 @@
     animation: fadeIn 0.1s ease-out;
   }
 
-  .tag {
-    @apply inline-flex items-center text-[10px] font-medium px-1.5 py-0.5 rounded-md;
-    @apply bg-amoled-border text-amoled-text-muted;
-  }
-
   .input-base {
     @apply w-full bg-amoled-surface border border-amoled-border rounded-xl px-3 py-2.5;
     @apply text-sm text-amoled-text placeholder-amoled-text-muted;

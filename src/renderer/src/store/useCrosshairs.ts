@@ -15,15 +15,13 @@ export function useCrosshairs() {
 
   useEffect(() => { load() }, [load])
 
-  const add = useCallback(async (name: string, code: string, game?: Game, note?: string, tags?: string[]) => {
+  const add = useCallback(async (name: string, code: string, game?: Game) => {
     const detectedGame = game ?? detectGame(code) ?? 'valorant'
     const crosshair: Crosshair = {
       id: nanoid(),
       game: detectedGame,
       name,
       code: code.trim(),
-      tags: JSON.stringify(tags ?? []),
-      note: note ?? '',
       color_preview: extractPreviewColor(detectedGame, code),
       created_at: new Date().toISOString()
     }

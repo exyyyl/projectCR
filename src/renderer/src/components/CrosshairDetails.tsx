@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { Dialog } from '@base-ui/react'
 import { Check, Copy, Focus, Maximize2, X } from 'lucide-react'
 import { Crosshair } from '../types'
@@ -33,11 +33,20 @@ const SCENES_BY_GAME = {
 
 export function CrosshairDetails({ crosshair, open, onClose, onCopyCode }: Props) {
   const [sceneIndex, setSceneIndex] = useState(0)
-  const [zoom, setZoom] = useState<1 | 3>(3)
+  const [zoom, setZoom] = useState<1 | 3>(1)
   const [copied, setCopied] = useState(false)
   const scenes = SCENES_BY_GAME[crosshair.game]
   const scene = scenes[sceneIndex] ?? scenes[0]
   const details = useMemo(() => getDetails(crosshair), [crosshair])
+  const parameterRows: Array<[string, string]> = [
+    ['Игра', crosshair.game === 'valorant' ? 'Valorant' : 'CS2'],
+    ['Цвет', details.color.toUpperCase()],
+    ...details.rows
+  ]
+
+  useEffect(() => {
+    if (open) setZoom(1)
+  }, [open])
 
   const copyCode = () => {
     onCopyCode(crosshair.code)
@@ -50,18 +59,20 @@ export function CrosshairDetails({ crosshair, open, onClose, onCopyCode }: Props
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 z-[90] bg-black/85 backdrop-blur-md animate-fade-in" />
         <Dialog.Popup className="fixed inset-4 z-[100] flex min-h-0 overflow-hidden rounded-[28px] border border-white/10 bg-[#080808] shadow-[0_40px_120px_rgba(0,0,0,0.8)] outline-none animate-fade-in">
+          <Dialog.Close
+            className="absolute right-3 top-3 z-20 flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.07] bg-[#0B0B0B]/90 text-white/35 backdrop-blur-md transition-colors hover:bg-white/[0.06] hover:text-white focus-visible:ring-2 focus-visible:ring-white/40"
+            aria-label="Закрыть"
+          >
+            <X size={18} />
+          </Dialog.Close>
+
           <div className="flex min-w-0 flex-1 flex-col">
             <header className="flex h-16 shrink-0 items-center justify-between border-b border-white/[0.06] px-6">
-              <div className="min-w-0">
-                <Dialog.Title className="truncate text-lg font-black tracking-tight text-white">
-                  {crosshair.name}
-                </Dialog.Title>
-                <Dialog.Description className="mt-0.5 text-[10px] font-black uppercase tracking-[0.2em] text-white/25">
-                  Просмотр прицела на игровой поверхности
-                </Dialog.Description>
-              </div>
+              <Dialog.Title className="min-w-0 truncate text-lg font-black tracking-tight text-white">
+                {crosshair.name}
+              </Dialog.Title>
 
-              <div className="ml-5 flex items-center gap-2">
+              <div className="ml-5 flex items-center">
                 <div className="flex rounded-xl border border-white/[0.07] bg-black/40 p-1">
                   {([1, 3] as const).map(value => (
                     <button
@@ -77,12 +88,6 @@ export function CrosshairDetails({ crosshair, open, onClose, onCopyCode }: Props
                     </button>
                   ))}
                 </div>
-                <Dialog.Close
-                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.07] text-white/35 transition-colors hover:bg-white/5 hover:text-white"
-                  aria-label="Закрыть"
-                >
-                  <X size={18} />
-                </Dialog.Close>
               </div>
             </header>
 
@@ -129,24 +134,8 @@ export function CrosshairDetails({ crosshair, open, onClose, onCopyCode }: Props
             </div>
           </div>
 
-          <aside className="flex w-[300px] shrink-0 flex-col border-l border-white/[0.06] bg-[#0B0B0B] p-5">
-            <div className="flex items-center justify-between">
-              <span
-                className="rounded-lg px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em]"
-                style={{
-                  color: crosshair.game === 'valorant' ? '#FF6571' : '#F2B544',
-                  background: crosshair.game === 'valorant' ? '#FF465518' : '#E8A53018',
-                }}
-              >
-                {crosshair.game === 'valorant' ? 'Valorant' : 'CS2'}
-              </span>
-              <div className="flex items-center gap-2 text-[10px] font-bold text-white/30">
-                <span className="h-2.5 w-2.5 rounded-full border border-white/20" style={{ background: details.color }} />
-                {details.color.toUpperCase()}
-              </div>
-            </div>
-
-            <div className="mt-6">
+          <aside className="flex w-[300px] shrink-0 flex-col border-l border-white/[0.06] bg-[#0B0B0B] px-5 pb-5 pt-16">
+            <div>
               <p className="text-[9px] font-black uppercase tracking-[0.18em] text-white/20">Код прицела</p>
               <button
                 onClick={copyCode}
@@ -160,21 +149,45 @@ export function CrosshairDetails({ crosshair, open, onClose, onCopyCode }: Props
             <div className="mt-6">
               <p className="text-[9px] font-black uppercase tracking-[0.18em] text-white/20">Параметры</p>
               <dl className="mt-2 overflow-hidden rounded-xl border border-white/[0.06]">
-                {details.rows.map(([label, value]) => (
+                {parameterRows.map(([label, value]) => (
                   <div key={label} className="flex items-center justify-between border-b border-white/[0.05] px-3 py-2.5 last:border-0">
                     <dt className="text-[10px] font-medium text-white/30">{label}</dt>
-                    <dd className="font-mono text-[10px] font-bold text-white/65">{value}</dd>
+                    <dd className="flex items-center gap-2 font-mono text-[10px] font-bold text-white/65">
+                      {label === 'Игра' ? (
+                        <span
+                          className="rounded-md border px-2 py-1 font-sans text-[9px] font-black uppercase tracking-[0.12em]"
+                          style={{
+                            color: crosshair.game === 'valorant' ? '#FF6571' : '#F2B544',
+                            background: crosshair.game === 'valorant' ? '#FF465512' : '#E8A53012',
+                            borderColor: crosshair.game === 'valorant' ? '#FF46552E' : '#E8A5302E'
+                          }}
+                        >
+                          {value}
+                        </span>
+                      ) : label === 'Цвет' ? (
+                        <span
+                          className="flex items-center gap-2 rounded-md border border-white/10 px-2 py-1 text-white/70"
+                          style={{
+                            background: `${details.color}12`,
+                            boxShadow: `inset 0 0 0 1px ${details.color}24`
+                          }}
+                        >
+                          <span
+                            className="h-2.5 w-2.5 rounded-full border border-white/25 shadow-[0_0_8px_rgba(255,255,255,0.12)]"
+                            style={{ background: details.color }}
+                            aria-hidden="true"
+                          />
+                          {value}
+                        </span>
+                      ) : (
+                        value
+                      )}
+                    </dd>
                   </div>
                 ))}
               </dl>
             </div>
 
-            {crosshair.note && (
-              <div className="mt-6">
-                <p className="text-[9px] font-black uppercase tracking-[0.18em] text-white/20">Заметка</p>
-                <p className="mt-2 text-xs leading-relaxed text-white/45">{crosshair.note}</p>
-              </div>
-            )}
           </aside>
         </Dialog.Popup>
       </Dialog.Portal>

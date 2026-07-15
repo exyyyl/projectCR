@@ -82,8 +82,6 @@ export const EsportsCardPreview: React.FC<EsportsCardPreviewProps> = ({
                   game,
                   name: 'Preview',
                   code: code.trim(),
-                  tags: '',
-                  note: '',
                   color_preview: '',
                   created_at: ''
                 }} 

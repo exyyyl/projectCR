@@ -1,22 +1,23 @@
-import React, { useState, useEffect, useMemo } from 'react'
-import { Dialog, Tabs } from '@base-ui/react'
+import { useMemo, useState } from 'react'
+import { Tabs } from '@base-ui/react'
 import { CrosshairCard } from './components/CrosshairCard'
 import { AddPanel } from './components/AddPanel'
 import { ToastContainer, toast } from './components/Toast'
-import { UpdateNotification } from './components/UpdateNotification'
-import { CHANGELOG } from './config/changelog'
+import { UpdateBanner } from './components/UpdateBanner'
+import { ReleaseNotesModal } from './components/ReleaseNotesModal'
+import { EmptyCrosshairs } from './components/EmptyCrosshairs'
 import { useCrosshairs } from './store/useCrosshairs'
+import { useAppUpdate } from './hooks/useAppUpdate'
 import { Game } from './types'
-import { Search, Plus, Crosshair as CrosshairIcon, Settings, ChevronDown, Users, X } from 'lucide-react'
+import { Search, Plus, Crosshair as CrosshairIcon, Settings, ChevronDown, Users } from 'lucide-react'
 import { SettingsPanel } from './components/SettingsPanel'
 import { LineupsPanel } from './components/LineupsPanel'
 
 type TabValue = 'crosshairs' | 'lineups' | 'settings'
 
-const CHANGELOG_RELEASES = Object.entries(CHANGELOG).map(([version, items]) => ({ version, items }))
-
 export default function App() {
-  const { crosshairs, loading, add, remove } = useCrosshairs()
+  const { crosshairs, loading, add, remove, reload } = useCrosshairs()
+  const { state: updateState, hasUpdate, download, install } = useAppUpdate()
   const [tab, setTab] = useState<TabValue>('crosshairs')
   const [gameFilter, setGameFilter] = useState<'all' | Game>('all')
   const [search, setSearch] = useState('')
@@ -24,6 +25,10 @@ export default function App() {
   const [sortOrder, setOrder] = useState<'asc' | 'desc'>('desc')
   const [sortOpen, setSortOpen] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
+  const [dismissedUpdate, setDismissedUpdate] = useState<string | null>(null)
+
+  const updateKey = updateState.version ?? updateState.status
+  const showUpdateBanner = hasUpdate && dismissedUpdate !== updateKey
 
   const counts = useMemo(() => ({
     all: crosshairs.length,
@@ -195,13 +200,21 @@ export default function App() {
               </div>
             </div>
 
+            {showUpdateBanner && (
+              <UpdateBanner
+                state={updateState}
+                onOpenSettings={() => setTab('settings')}
+                onDismiss={() => setDismissedUpdate(updateKey)}
+              />
+            )}
+
             {loading ? (
               <div className="flex min-h-0 flex-1 items-center justify-center">
                 <div className="w-6 h-6 border-2 border-white/10 border-t-white rounded-full animate-spin" />
               </div>
             ) : filtered.length === 0 ? (
               <div className="min-h-0 flex-1">
-                <EmptyState search={search} onClearSearch={() => setSearch('')} onAdd={() => setModalOpen(true)} />
+                <EmptyCrosshairs search={search} onClearSearch={() => setSearch('')} onAdd={() => setModalOpen(true)} />
               </div>
             ) : (
               <div className="custom-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain">
@@ -231,7 +244,12 @@ export default function App() {
           value="settings"
           className="flex-1 focus:outline-none relative overflow-hidden"
         >
-          <SettingsPanel />
+          <SettingsPanel
+            updateState={updateState}
+            onDownloadUpdate={() => void download()}
+            onInstallUpdate={() => void install()}
+            onCrosshairsImported={reload}
+          />
         </Tabs.Panel>
 
         <nav className="h-[72px] shrink-0 border-t border-white/[0.06] bg-[#050505]/95 px-6 backdrop-blur-xl">
@@ -268,13 +286,22 @@ export default function App() {
               value="settings"
               aria-label="Настройки"
               title="Настройки"
-              className={`flex size-11 items-center justify-center rounded-2xl outline-none transition-all duration-200 focus-visible:ring-2 focus-visible:ring-white/50
+              className={`relative flex size-11 items-center justify-center rounded-2xl outline-none transition-all duration-200 focus-visible:ring-2 focus-visible:ring-white/50
                 ${tab === 'settings'
                   ? 'bg-white text-black shadow-[0_10px_30px_rgba(255,255,255,0.08)]'
-                  : 'text-white/30 hover:bg-white/[0.05] hover:text-white/75'
+                  : hasUpdate
+                    ? 'bg-white/[0.055] text-white/75 shadow-[0_0_24px_rgba(255,70,85,0.12)] hover:bg-white/[0.08] hover:text-white'
+                    : 'text-white/30 hover:bg-white/[0.05] hover:text-white/75'
                 }`}
             >
               <Settings size={16} strokeWidth={tab === 'settings' ? 2.6 : 2} />
+              {hasUpdate && (
+                <span className={`absolute right-2 top-2 size-2 rounded-full ${
+                  tab === 'settings'
+                    ? 'border border-black/25 bg-[#FF4655]'
+                    : 'border border-[#050505] bg-[#FF4655] shadow-[0_0_10px_rgba(255,70,85,0.8)]'
+                }`} />
+              )}
             </Tabs.Tab>
           </Tabs.List>
         </nav>
@@ -283,124 +310,10 @@ export default function App() {
       <AddPanel 
         open={modalOpen} 
         onClose={() => setModalOpen(false)} 
-        onAdd={async (name, code, game, note, tags) => { await add(name, code, game, note, tags) }} 
+        onAdd={async (name, code, game) => { await add(name, code, game) }}
       />
       <ReleaseNotesModal />
       <ToastContainer />
-      <UpdateNotification />
-    </div>
-  )
-}
-
-function ReleaseNotesModal() {
-  const [open, setOpen] = useState(false)
-
-  useEffect(() => {
-    const handleOpen = () => setOpen(true)
-
-    window.addEventListener('open-changelog', handleOpen)
-
-    if (window.api?.window) {
-      void window.api.window.getVersion().then(currentVersion => {
-        const lastVersion = localStorage.getItem('last_version')
-
-        if (lastVersion && lastVersion !== currentVersion) {
-          setOpen(true)
-        }
-
-        localStorage.setItem('last_version', currentVersion)
-      })
-    }
-
-    return () => window.removeEventListener('open-changelog', handleOpen)
-  }, [])
-
-  return (
-    <Dialog.Root open={open} onOpenChange={setOpen}>
-      <Dialog.Portal>
-        <Dialog.Backdrop className="fixed inset-0 z-[190] bg-black/85 backdrop-blur-md animate-fade-in" />
-        <Dialog.Popup className="fixed left-1/2 top-1/2 z-[200] flex max-h-[calc(100vh-32px)] w-[calc(100vw-32px)] max-w-xl -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-[24px] border border-white/[0.09] bg-[#090909] shadow-[0_40px_120px_rgba(0,0,0,0.85)] outline-none animate-fade-in">
-          <header className="flex shrink-0 items-center justify-between border-b border-white/[0.07] px-6 py-5">
-            <Dialog.Title className="text-xl font-black tracking-[-0.025em] text-white">
-              Обновления
-            </Dialog.Title>
-            <Dialog.Description className="sr-only">
-              Изменения в версиях ProjectCR
-            </Dialog.Description>
-            <Dialog.Close
-              className="flex h-9 w-9 items-center justify-center rounded-xl text-white/35 outline-none transition-colors hover:bg-white/[0.06] hover:text-white focus-visible:ring-2 focus-visible:ring-white/50"
-              aria-label="Закрыть обновления"
-            >
-              <X size={17} />
-            </Dialog.Close>
-          </header>
-
-          <div className="min-h-0 overflow-y-auto p-5 sm:p-6">
-            {CHANGELOG_RELEASES.map(release => (
-              <section key={release.version} className="overflow-hidden rounded-2xl border border-white/[0.07] bg-white/[0.018]">
-                <div className="border-b border-white/[0.06] px-5 py-4">
-                  <p className="font-mono text-[12px] font-black tracking-tight text-white/75">v{release.version}</p>
-                </div>
-
-                {release.items.map(item => (
-                  <article key={`${release.version}-${item.title}`} className="px-5 py-6">
-                    <h3 className="text-[14px] font-bold tracking-tight text-white/85">{item.title}</h3>
-                    <p className="mt-2 max-w-md text-[12px] font-medium leading-relaxed text-white/35">{item.desc}</p>
-                  </article>
-                ))}
-              </section>
-            ))}
-          </div>
-        </Dialog.Popup>
-      </Dialog.Portal>
-    </Dialog.Root>
-  )
-}
-
-function EmptyState({ search, onClearSearch, onAdd }: { search: string; onClearSearch: () => void; onAdd: () => void }) {
-  return (
-    <div className="relative h-full w-full flex items-center justify-center overflow-hidden">
-      {/* Skeleton Background */}
-      <div className="absolute inset-0 px-6 pt-5 pb-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 opacity-[0.02] pointer-events-none">
-        {Array.from({ length: 12 }).map((_, i) => (
-          <div key={i} className="aspect-[4/5] bg-white rounded-[2rem] border border-white/20" />
-        ))}
-      </div>
-
-      <div className="relative z-10 flex flex-col items-center max-w-sm w-full px-6 text-center">
-        <div className="w-24 h-24 rounded-[2rem] bg-white/[0.02] border border-white/5 flex items-center justify-center shadow-2xl mb-8 rotate-3 hover:rotate-0 transition-transform duration-700">
-          <CrosshairIcon size={40} strokeWidth={1} className="text-white/10" />
-        </div>
-        
-        {search ? (
-          <>
-            <h3 className="text-white text-2xl font-black tracking-tight mb-3">Ничего не нашли</h3>
-            <p className="text-sm text-white/40 leading-relaxed mb-8">
-              По запросу «<span className="text-white/60">{search}</span>» прицелов в вашей коллекции нет. Попробуйте другое слово.
-            </p>
-            <button 
-              onClick={onClearSearch}
-              className="w-full text-[11px] font-black tracking-[0.2em] text-white bg-white/5 border border-white/5 py-4 rounded-2xl hover:bg-white/10 hover:border-white/10 transition-all active:scale-[0.98]"
-            >
-              СБРОСИТЬ ПОИСК
-            </button>
-          </>
-        ) : (
-          <>
-            <h3 className="text-white text-2xl font-black tracking-tight mb-3">Коллекция пуста</h3>
-            <p className="text-sm text-white/40 leading-relaxed mb-10">
-              Похоже, вы еще не добавили ни одного прицела. Время создать свою идеальную коллекцию!
-            </p>
-            <button 
-              onClick={onAdd}
-              className="group w-full flex items-center justify-center gap-3 text-[11px] font-black tracking-[0.2em] text-black bg-white py-4 rounded-2xl hover:scale-[1.02] transition-all active:scale-[0.98] shadow-[0_20px_40px_rgba(255,255,255,0.1)]"
-            >
-              <Plus size={16} strokeWidth={4} />
-              ДОБАВИТЬ
-            </button>
-          </>
-        )}
-      </div>
     </div>
   )
 }

@@ -1,20 +1,73 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
-import { autoUpdater } from 'electron-updater'
-import log from 'electron-log'
+import { app, shell, BrowserWindow, ipcMain, Menu, nativeImage, Tray } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { initDatabase, db } from './database'
 import { ValorantAPI } from './valorant-api'
 import { CS2Config } from './cs2-config'
+import {
+  getAppSettings,
+  loadAppSettings,
+  updateAppSettings,
+  type AppSettings
+} from './app-settings'
+import {
+  configureUpdater,
+  downloadUpdate,
+  getUpdateState,
+  installUpdate
+} from './app-updater'
+import { exportCrosshairs, importCrosshairs } from './crosshair-transfer'
 
-function createWindow(): void {
-  const iconPath = is.dev 
+let mainWindow: BrowserWindow | null = null
+let tray: Tray | null = null
+let isQuitting = false
+
+function getIconPath(): string {
+  return is.dev
     ? join(process.cwd(), 'resources/icon.png')
     : join(__dirname, '../../resources/icon.png')
+}
 
-  const mainWindow = new BrowserWindow({
+function showMainWindow(): void {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    createWindow()
+    return
+  }
+
+  if (mainWindow.isMinimized()) mainWindow.restore()
+  mainWindow.show()
+  mainWindow.focus()
+}
+
+function syncTray(): void {
+  if (!getAppSettings().runInBackground) {
+    tray?.destroy()
+    tray = null
+    return
+  }
+
+  if (tray) return
+  const trayImage = nativeImage.createFromPath(getIconPath()).resize({ width: 18, height: 18 })
+  tray = new Tray(trayImage)
+  tray.setToolTip('ProjectCR')
+  tray.setContextMenu(Menu.buildFromTemplate([
+    { label: 'Открыть ProjectCR', click: showMainWindow },
+    { type: 'separator' },
+    {
+      label: 'Выйти',
+      click: () => {
+        isQuitting = true
+        app.quit()
+      }
+    }
+  ]))
+  tray.on('click', showMainWindow)
+}
+
+function createWindow(): void {
+  mainWindow = new BrowserWindow({
     title: 'projectCR',
-    icon: iconPath,
+    icon: getIconPath(),
     width: 1200,
     height: 780,
     minWidth: 900,
@@ -33,7 +86,18 @@ function createWindow(): void {
   })
 
   mainWindow.on('ready-to-show', () => {
-    mainWindow.show()
+    mainWindow?.show()
+  })
+
+  mainWindow.on('close', (event) => {
+    if (!isQuitting && getAppSettings().runInBackground) {
+      event.preventDefault()
+      mainWindow?.hide()
+    }
+  })
+
+  mainWindow.on('closed', () => {
+    mainWindow = null
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
@@ -50,6 +114,7 @@ function createWindow(): void {
 
 app.whenReady().then(() => {
   electronApp.setAppUserModelId('com.projectcr')
+  loadAppSettings()
 
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
@@ -63,58 +128,35 @@ app.whenReady().then(() => {
 
   registerIpcHandlers()
   createWindow()
+  syncTray()
+  configureUpdater()
 
   app.on('activate', function () {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
-  })
-
-  // Configure logging
-  autoUpdater.logger = log
-  // Check for updates
-  if (!is.dev) {
-    log.info('Проверка обновлений...')
-    autoUpdater.checkForUpdates().catch(err => {
-      log.error('Ошибка при проверке обновлений:', err)
-    })
-  }
-
-  autoUpdater.on('checking-for-update', () => {
-    log.info('Checking for update event...')
-  })
-
-  autoUpdater.on('update-available', (info) => {
-    log.info('Update available event! New version:', info.version)
-    BrowserWindow.getAllWindows()[0]?.webContents.send('update-available', info)
-  })
-
-  autoUpdater.on('update-not-available', (info) => {
-    log.info('Update not available event. Current version matches latest or latest is older:', info?.version)
-  })
-
-  autoUpdater.on('error', (err) => {
-    log.error('Update error event:', err)
-  })
-
-  autoUpdater.on('download-progress', (progressObj) => {
-    log.info(`Download progress: ${Math.round(progressObj.percent)}%`)
-  })
-
-  autoUpdater.on('update-downloaded', (info) => {
-    log.info('Update downloaded event! Ready to install version:', info.version)
-    BrowserWindow.getAllWindows()[0]?.webContents.send('update-downloaded', info)
+    showMainWindow()
   })
 })
 
+app.on('before-quit', () => {
+  isQuitting = true
+})
+
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
+  if (process.platform !== 'darwin' && !getAppSettings().runInBackground) {
     app.quit()
   }
 })
 
-ipcMain.on('update:install', () => autoUpdater.quitAndInstall())
-
 function registerIpcHandlers(): void {
   ipcMain.handle('app:getVersion', () => app.getVersion())
+  ipcMain.handle('appSettings:get', () => getAppSettings())
+  ipcMain.handle('appSettings:update', (_, patch: Partial<AppSettings>) => {
+    const settings = updateAppSettings(patch)
+    syncTray()
+    return settings
+  })
+  ipcMain.handle('update:getState', () => getUpdateState())
+  ipcMain.handle('update:download', () => downloadUpdate())
+  ipcMain.handle('update:install', () => installUpdate())
 
   ipcMain.handle('crosshairs:getAll', () => {
     try {
@@ -122,17 +164,20 @@ function registerIpcHandlers(): void {
     } catch { return [] }
   })
 
+  ipcMain.handle('crosshairs:export', () => exportCrosshairs(mainWindow))
+  ipcMain.handle('crosshairs:import', () => importCrosshairs(mainWindow))
+
   ipcMain.handle('crosshairs:add', (_, crosshair) => {
     db.prepare(`
-      INSERT INTO crosshairs (id, game, name, code, tags, note, color_preview, created_at)
-      VALUES (@id, @game, @name, @code, @tags, @note, @color_preview, @created_at)
+      INSERT INTO crosshairs (id, game, name, code, color_preview, created_at)
+      VALUES (@id, @game, @name, @code, @color_preview, @created_at)
     `).run(crosshair)
     return crosshair
   })
 
   ipcMain.handle('crosshairs:update', (_, crosshair) => {
     db.prepare(`
-      UPDATE crosshairs SET name=@name, code=@code, tags=@tags, note=@note, color_preview=@color_preview
+      UPDATE crosshairs SET name=@name, code=@code, color_preview=@color_preview
       WHERE id=@id
     `).run(crosshair)
     return crosshair
